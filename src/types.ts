@@ -2,12 +2,14 @@ export interface PortProcess {
   port: number;
   pid: number;
   process: string;
+  command: string;
   uptime: string;
 }
 
 export interface ScanOptions {
   json?: boolean;
   ports?: number[];
+  portRange?: [number, number];
 }
 
 export interface KillOptions {

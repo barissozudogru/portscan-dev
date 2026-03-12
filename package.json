@@ -1,12 +1,16 @@
 {
   "name": "@barissozudogru/portscan-dev",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Scan and manage active development ports",
+  "type": "module",
   "bin": {
     "portscan-dev": "dist/cli.js"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "build": "tsc",
     "prepublishOnly": "npm run build"
