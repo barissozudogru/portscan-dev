@@ -7,7 +7,6 @@ export interface PortProcess {
 }
 
 export interface ScanOptions {
-  json?: boolean;
   ports?: number[];
   portRange?: [number, number];
 }

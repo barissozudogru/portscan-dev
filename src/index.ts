@@ -177,13 +177,61 @@ export function scanPorts(options?: ScanOptions): PortProcess[] {
   return (results ?? []).sort((a, b) => a.port - b.port);
 }
 
+function findProcessOnPort(port: number): PortProcess | null {
+  const isLinux = process.platform === "linux";
+  let results: PortProcess[] | null = null;
+  const filterFn = (p: number) => p === port;
+
+  if (!isLinux) {
+    try {
+      const output = execSync(`lsof -iTCP:${port} -sTCP:LISTEN -n -P`, {
+        encoding: "utf8",
+        stdio: ["pipe", "pipe", "pipe"],
+        timeout: EXEC_TIMEOUT,
+      });
+      results = parseLsofOutput(output, filterFn);
+    } catch (err: unknown) {
+      const error = err as { stdout?: string };
+      if (error.stdout) results = parseLsofOutput(error.stdout, filterFn);
+    }
+  }
+
+  if (results === null) {
+    try {
+      const output = execSync(`ss -tlnp sport = :${port}`, {
+        encoding: "utf8",
+        stdio: ["pipe", "pipe", "pipe"],
+        timeout: EXEC_TIMEOUT,
+      });
+      results = parseSsOutput(output, filterFn);
+    } catch {
+      // ignore
+    }
+  }
+
+  if (results === null) {
+    try {
+      const output = execSync(`lsof -iTCP:${port} -sTCP:LISTEN -n -P`, {
+        encoding: "utf8",
+        stdio: ["pipe", "pipe", "pipe"],
+        timeout: EXEC_TIMEOUT,
+      });
+      results = parseLsofOutput(output, filterFn);
+    } catch (err: unknown) {
+      const error = err as { stdout?: string };
+      if (error.stdout) results = parseLsofOutput(error.stdout, filterFn);
+    }
+  }
+
+  return results && results.length > 0 ? results[0] : null;
+}
+
 export function killPorts(options: KillOptions): KillResult[] {
   const { ports, signal = "SIGTERM" } = options;
-  const active = scanPorts();
   const results: KillResult[] = [];
 
   for (const port of ports) {
-    const entry = active.find((p) => p.port === port);
+    const entry = findProcessOnPort(port);
 
     if (!entry) {
       results.push({

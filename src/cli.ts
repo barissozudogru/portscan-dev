@@ -114,6 +114,18 @@ function parseArgs(argv: string[]): ParsedArgs {
         console.error("--signal requires a signal name, e.g. --signal SIGKILL");
         process.exit(1);
       }
+      const VALID_SIGNALS: readonly string[] = [
+        "SIGTERM", "SIGKILL", "SIGINT", "SIGHUP", "SIGQUIT",
+        "SIGUSR1", "SIGUSR2", "SIGPIPE", "SIGALRM", "SIGCHLD",
+        "SIGCONT", "SIGSTOP", "SIGTSTP", "SIGTTIN", "SIGTTOU",
+        "SIGBUS", "SIGFPE", "SIGILL", "SIGSEGV", "SIGSYS",
+        "SIGTRAP", "SIGURG", "SIGVTALRM", "SIGXCPU", "SIGXFSZ",
+        "SIGWINCH",
+      ];
+      if (!VALID_SIGNALS.includes(next)) {
+        console.error(`Unknown signal: ${next}. Valid signals: ${VALID_SIGNALS.join(", ")}`);
+        process.exit(1);
+      }
       result.signal = next as NodeJS.Signals;
       i++;
     } else if (arg === "--port-range") {
