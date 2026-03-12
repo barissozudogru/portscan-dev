@@ -1,0 +1,39 @@
+{
+  "name": "@barissozudogru/portscan-dev",
+  "version": "0.1.0",
+  "description": "Scan and manage active development ports",
+  "bin": {
+    "portscan-dev": "./dist/cli.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/barissozudogru/portscan-dev.git"
+  },
+  "keywords": [
+    "ports",
+    "dev",
+    "kill",
+    "process",
+    "cli"
+  ],
+  "author": "Baris Sozudogru",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "typescript": "^5.9.3"
+  }
+}
