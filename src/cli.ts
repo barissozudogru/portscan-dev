@@ -103,10 +103,22 @@ function parseArgs(argv: string[]): ParsedArgs {
         console.error("--kill requires one or more port numbers, e.g. --kill 3000 or --kill 3000,4000");
         process.exit(1);
       }
-      result.kill = next
-        .split(",")
-        .map((p) => parseInt(p.trim(), 10))
-        .filter((p) => !isNaN(p));
+      const parsedPorts: number[] = [];
+      const invalidPorts: string[] = [];
+      for (const token of next.split(",")) {
+        const trimmed = token.trim();
+        const num = Number(trimmed);
+        if (!/^\d+$/.test(trimmed) || num < 1 || num > 65535) {
+          invalidPorts.push(trimmed);
+        } else {
+          parsedPorts.push(num);
+        }
+      }
+      if (invalidPorts.length > 0) {
+        console.error(`Invalid port number(s): ${invalidPorts.join(", ")}. Use integers between 1 and 65535, e.g. --kill 3000 or --kill 3000,8080`);
+        process.exit(1);
+      }
+      result.kill = parsedPorts;
       i++;
     } else if (arg === "--signal" || arg === "-s") {
       const next = args[i + 1];
