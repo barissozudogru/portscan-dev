@@ -95,7 +95,7 @@ function parseArgs(argv: string[]): ParsedArgs {
       result.help = true;
     } else if (arg === "--version" || arg === "-v") {
       result.version = true;
-    } else if (arg === "--json") {
+    } else if (arg === "--json" || arg === "-j") {
       result.json = true;
     } else if (arg === "--kill" || arg === "-k") {
       const next = args[i + 1];
@@ -171,7 +171,7 @@ Options:
   -k, --kill <ports>       Comma-separated list of ports to kill
   -s, --signal <signal>    Signal to send (default: SIGTERM)
       --port-range <range> Port range filter, e.g. 3000-9000
-      --json               Output as JSON
+  -j, --json               Output as JSON
   -v, --version            Print version and exit
   -h, --help               Show this help
 
