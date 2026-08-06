@@ -1,76 +1,34 @@
-<h1 align="center">portscan-dev</h1>
+# portscan-dev
 
-<p align="center">
-  See what is running on your development ports and kill it with one command.
-</p>
+`portscan-dev` scans your system for processes listening on development ports (3000–9999 and common database ports like PostgreSQL, Redis, MongoDB) and displays PID, process name, uptime, and command line. When a process occupies a required port, kill it directly without manual `lsof` or `ps` commands.
 
-<p align="center">
-  <img src="https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white" alt="TypeScript">
-  <img src="https://img.shields.io/badge/Node.js-%3E%3D18-339933?style=flat&logo=node.js&logoColor=white" alt="Node.js >= 18">
-  <img src="https://img.shields.io/badge/License-MIT-blue?style=flat" alt="MIT License">
-  <img src="https://img.shields.io/badge/Zero_Dependencies-brightgreen?style=flat" alt="Zero Dependencies">
-</p>
-
----
-
-## What It Does
-
-`portscan-dev` scans your system for processes listening on development ports and gives you a clean, readable table showing the port, PID, process name, uptime, and full command. When something is occupying a port you need, kill it in one command — no manual `lsof` piping required.
-
-- Scans ports 3000–9999 and common database ports by default
-- Kills one or many ports at once, with configurable signal
-- Outputs JSON for scripting and CI use
-- Filters to any custom port range
-- Works on macOS and Linux with automatic tool detection
-- Zero runtime dependencies
-
----
-
-## Quick Start
+## Installation
 
 ```bash
 npm install -g @barissozudogru/portscan-dev
 ```
 
-```bash
-# See everything running on your dev ports
-portscan-dev
-
-# Kill whatever is on port 3000
-portscan-dev --kill 3000
-```
-
----
-
 ## Usage
 
 ```bash
-# Scan all active development ports
+# Scan active development ports
 portscan-dev
 
-# Kill a process on a specific port
+# Kill process on port 3000
 portscan-dev --kill 3000
 
-# Kill multiple ports at once
+# Kill processes on multiple ports
 portscan-dev --kill 3000,8080,4000
 
 # Kill with a specific signal
 portscan-dev --kill 3000 --signal SIGKILL
 
-# Filter scan to a specific port range
+# Filter scan to a port range
 portscan-dev --port-range 3000-5000
 
 # Output results as JSON
 portscan-dev --json
-
-# Show version
-portscan-dev --version
-
-# Show help
-portscan-dev --help
 ```
-
----
 
 ## Options
 
@@ -83,9 +41,7 @@ portscan-dev --help
 | `--version` | `-v` | Print version and exit | — |
 | `--help` | `-h` | Show help | — |
 
----
-
-## Example Output
+## Output Example
 
 ```
 PORT      PID       PROCESS               UPTIME            COMMAND
@@ -99,42 +55,27 @@ PORT      PID       PROCESS               UPTIME            COMMAND
 6379      1091      redis-server          14:22:08          redis-server *:6379
 ```
 
----
+## Scanned Ports
 
-## Default Scanned Ports
-
-| Range / Port | Description |
-|---|---|
-| `3000–9999` | General development range |
-| `5432` | PostgreSQL |
-| `6379` | Redis |
-| `27017` | MongoDB |
-
-Use `--port-range <start-end>` to override with a custom range.
-
----
+By default, `portscan-dev` scans ports 3000–9999 as well as database ports 5432 (PostgreSQL), 6379 (Redis), and 27017 (MongoDB). Pass `--port-range <start-end>` to specify a custom range.
 
 ## Platform Support
 
 | Platform | Detection tool | Notes |
 |---|---|---|
-| macOS | `lsof` | Available by default on all macOS versions |
-| Linux | `ss` | Available in `iproute2`, standard on modern distros |
-| Linux (fallback) | `lsof` | Used when `ss` is unavailable |
+| macOS | `lsof` | Available by default |
+| Linux | `ss` | Available in `iproute2` |
+| Linux (fallback) | `lsof` | Fallback when `ss` is missing |
 
-Process uptime and full command are resolved via `ps` on both platforms.
-
----
+Process uptime and full command are resolved via `ps` on supported platforms.
 
 ## Exit Codes
 
 | Code | Meaning |
 |---|---|
-| `0` | Success — scan completed or all ports killed successfully |
-| `1` | One or more ports could not be killed |
-
----
+| `0` | Success (scan completed or ports killed) |
+| `1` | Failure (one or more ports could not be killed) |
 
 ## License
 
-MIT — see [LICENSE](./LICENSE).
+[MIT](./LICENSE)
