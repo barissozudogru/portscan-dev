@@ -74,11 +74,15 @@ function parseLsofOutput(output: string, filterFn: (port: number) => boolean): P
 
     const processName = parts[0];
     const pid = parseInt(parts[1], 10);
-    const name = parts[parts.length - 1]; // e.g. *:3000 or 127.0.0.1:3000
+    
+    // NAME column may contain state like "(LISTEN)"
+    const nameToken = parts[parts.length - 1].startsWith("(") 
+      ? parts[parts.length - 2] 
+      : parts[parts.length - 1];
 
-    if (isNaN(pid)) continue;
+    if (isNaN(pid) || !nameToken) continue;
 
-    const portMatch = name.match(/:(\d+)$/);
+    const portMatch = nameToken.match(/:(\d+)$/);
     if (!portMatch) continue;
 
     const port = parseInt(portMatch[1], 10);
