@@ -43,7 +43,7 @@ function scanWithLsof(): string | null {
   } catch (err: unknown) {
     const error = err as { stdout?: string };
     // lsof exits non-zero when no results on some systems; check if we got output
-    if (error.stdout) return error.stdout;
+    if (typeof error.stdout === 'string') return error.stdout;
     return null;
   }
 }
@@ -196,7 +196,7 @@ function findProcessOnPort(port: number): PortProcess | null {
       results = parseLsofOutput(output, filterFn);
     } catch (err: unknown) {
       const error = err as { stdout?: string };
-      if (error.stdout) results = parseLsofOutput(error.stdout, filterFn);
+      if (typeof error.stdout === 'string') results = parseLsofOutput(error.stdout, filterFn);
     }
   }
 
@@ -223,7 +223,7 @@ function findProcessOnPort(port: number): PortProcess | null {
       results = parseLsofOutput(output, filterFn);
     } catch (err: unknown) {
       const error = err as { stdout?: string };
-      if (error.stdout) results = parseLsofOutput(error.stdout, filterFn);
+      if (typeof error.stdout === 'string') results = parseLsofOutput(error.stdout, filterFn);
     }
   }
 
