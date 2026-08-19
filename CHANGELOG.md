@@ -44,7 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial release
 - Port scan using `lsof -iTCP -sTCP:LISTEN -n -P` on macOS
-- Default scan range: ports 3000–9999 plus 5432 (PostgreSQL), 6379 (Redis), 27017 (MongoDB)
+- Default scan range: ports 3000-9999 plus 5432 (PostgreSQL), 6379 (Redis), 27017 (MongoDB)
 - `--kill <port>` flag to send `SIGTERM` (default) or a custom signal to the process on a port
 - `--json` flag to output scan or kill results as newline-terminated JSON
 - `--version` and `--help` flags
