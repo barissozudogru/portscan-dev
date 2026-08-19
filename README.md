@@ -34,12 +34,12 @@ portscan-dev --json
 
 | Flag | Alias | Description | Default |
 |---|---|---|---|
-| `--kill <ports>` | `-k` | Comma-separated list of ports to kill |  -  |
+| `--kill <ports>` | `-k` | Comma-separated list of ports to kill | - |
 | `--signal <signal>` | `-s` | Signal to send when killing (e.g. `SIGTERM`, `SIGKILL`) | `SIGTERM` |
-| `--port-range <start-end>` |  -  | Filter scan to a port range, e.g. `3000-9000` |  -  |
-| `--json` | `-j` | Output results as JSON |  -  |
-| `--version` | `-v` | Print version and exit |  -  |
-| `--help` | `-h` | Show help |  -  |
+| `--port-range <start-end>` | - | Filter scan to a port range, e.g. `3000-9000` | - |
+| `--json` | `-j` | Output results as JSON | - |
+| `--version` | `-v` | Print version and exit | - |
+| `--help` | `-h` | Show help | - |
 
 ## Output Example
 
