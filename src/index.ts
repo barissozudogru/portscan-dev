@@ -4,7 +4,22 @@ import { PortProcess, ScanOptions, KillOptions, KillResult } from "./types.js";
 const EXEC_TIMEOUT = 5000;
 
 const DEV_PORT_RANGES: Array<[number, number]> = [[3000, 9999]];
-const EXTRA_PORTS: number[] = [5432, 6379, 27017];
+// Well-known service ports outside the 3000-9999 dev range. Without these a
+// scan silently omits a running service, which reads as "nothing is on that
+// port" rather than "not scanned".
+const EXTRA_PORTS: number[] = [
+  1433,  // SQL Server
+  1521,  // Oracle
+  2375,  // Docker daemon (plain)
+  2376,  // Docker daemon (TLS)
+  5432,  // PostgreSQL
+  5672,  // RabbitMQ
+  6379,  // Redis
+  11211, // Memcached
+  11434, // Ollama
+  15672, // RabbitMQ management UI
+  27017, // MongoDB
+];
 
 function isDevPort(port: number): boolean {
   if (EXTRA_PORTS.includes(port)) return true;
@@ -263,3 +278,6 @@ export function killPorts(options: KillOptions): KillResult[] {
 
   return results;
 }
+
+// Exported for tests.
+export const isDevPortForTest = isDevPort;

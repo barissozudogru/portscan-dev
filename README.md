@@ -1,6 +1,6 @@
 # portscan-dev
 
-`portscan-dev` scans your system for processes listening on development ports (3000–9999 and common database ports like PostgreSQL, Redis, MongoDB) and displays PID, process name, uptime, and command line. When a process occupies a required port, kill it directly without manual `lsof` or `ps` commands.
+`portscan-dev` scans your system for processes listening on development ports (3000-9999, plus well-known service ports such as PostgreSQL, Redis, MongoDB, Ollama, RabbitMQ, Memcached and the Docker daemon) and displays PID, process name, uptime, and command line. When a process occupies a required port, kill it directly without manual `lsof` or `ps` commands.
 
 ## Installation
 
@@ -34,12 +34,12 @@ portscan-dev --json
 
 | Flag | Alias | Description | Default |
 |---|---|---|---|
-| `--kill <ports>` | `-k` | Comma-separated list of ports to kill | — |
+| `--kill <ports>` | `-k` | Comma-separated list of ports to kill |  -  |
 | `--signal <signal>` | `-s` | Signal to send when killing (e.g. `SIGTERM`, `SIGKILL`) | `SIGTERM` |
-| `--port-range <start-end>` | — | Filter scan to a port range, e.g. `3000-9000` | — |
-| `--json` | `-j` | Output results as JSON | — |
-| `--version` | `-v` | Print version and exit | — |
-| `--help` | `-h` | Show help | — |
+| `--port-range <start-end>` |  -  | Filter scan to a port range, e.g. `3000-9000` |  -  |
+| `--json` | `-j` | Output results as JSON |  -  |
+| `--version` | `-v` | Print version and exit |  -  |
+| `--help` | `-h` | Show help |  -  |
 
 ## Output Example
 
@@ -57,7 +57,7 @@ PORT      PID       PROCESS               UPTIME            COMMAND
 
 ## Scanned Ports
 
-By default, `portscan-dev` scans ports 3000–9999 as well as database ports 5432 (PostgreSQL), 6379 (Redis), and 27017 (MongoDB). Pass `--port-range <start-end>` to specify a custom range.
+By default, `portscan-dev` scans ports 3000-9999 as well as database ports 5432 (PostgreSQL), 6379 (Redis), and 27017 (MongoDB). Pass `--port-range <start-end>` to specify a custom range.
 
 ## Platform Support
 

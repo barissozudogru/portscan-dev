@@ -43,8 +43,8 @@ portscan-dev
 
 ```
 src/
-  cli.ts       Entry point — argument parsing, help text, table rendering
-  index.ts     Core logic — port scanning (lsof/ss), process info, kill
+  cli.ts       Entry point  -  argument parsing, help text, table rendering
+  index.ts     Core logic  -  port scanning (lsof/ss), process info, kill
   types.ts     Shared TypeScript interfaces
 dist/          Compiled output (generated, not committed)
 ```
