@@ -1,6 +1,6 @@
 {
   "name": "@barissozudogru/portscan-dev",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Scan and manage active development ports",
   "type": "module",
   "bin": {
@@ -22,7 +22,7 @@
     "README.md"
   ],
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
+    "access": "public"
   },
   "repository": {
     "type": "git",
