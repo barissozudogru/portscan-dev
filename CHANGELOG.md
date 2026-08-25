@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.4.1] - 2026-08-26
+
+### Added
+
+- Continuous integration, Petri Labs discovery metadata, download badges, and a repository social preview.
+
+### Changed
+
+- Positioning now makes clear that this is a local development utility, not a network security scanner.
+- The package homepage now points to the focused Petri Labs tool page while source and issues remain on GitHub.
+
 ## [0.4.0] - 2026-08-19
 
 ### Added

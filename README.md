@@ -1,6 +1,21 @@
+<p align="center">
+  <img src="./assets/social-preview.svg" alt="portscan-dev" width="900" />
+</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/@barissozudogru/portscan-dev"><img alt="npm version" src="https://img.shields.io/npm/v/@barissozudogru/portscan-dev?style=flat-square&color=F08B72"></a>
+  <a href="https://www.npmjs.com/package/@barissozudogru/portscan-dev"><img alt="npm downloads" src="https://img.shields.io/npm/dm/@barissozudogru/portscan-dev?style=flat-square&color=F08B72"></a>
+  <a href="https://github.com/barissozudogru/portscan-dev/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/barissozudogru/portscan-dev/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="./LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/License-MIT-F08B72?style=flat-square"></a>
+</p>
+
 # portscan-dev
 
 `portscan-dev` scans your system for processes listening on development ports (3000-9999, plus well-known service ports such as PostgreSQL, Redis, MongoDB, Ollama, RabbitMQ, Memcached and the Docker daemon) and displays PID, process name, uptime, and command line. When a process occupies a required port, kill it directly without manual `lsof` or `ps` commands.
+
+This is a local development process inspector. It is not a network discovery or security scanner.
+
+[Tool page](https://petri-labs.org/tools/portscan-dev/) · [npm](https://www.npmjs.com/package/@barissozudogru/portscan-dev) · [Source](https://github.com/barissozudogru/portscan-dev)
 
 ## Installation
 
@@ -55,9 +70,13 @@ PORT      PID       PROCESS               UPTIME            COMMAND
 6379      1091      redis-server          14:22:08          redis-server *:6379
 ```
 
+A live verification with `python3 -m http.server 4567` returned the Python process owning port 4567. The temporary process was stopped after verification.
+
+If this saves you time, consider [starring the repository](https://github.com/barissozudogru/portscan-dev). It helps other developers find it.
+
 ## Scanned Ports
 
-By default, `portscan-dev` scans ports 3000-9999 as well as database ports 5432 (PostgreSQL), 6379 (Redis), and 27017 (MongoDB). Pass `--port-range <start-end>` to specify a custom range.
+By default, `portscan-dev` scans ports 3000-9999 plus well-known local service ports for databases, queues, containers, and model runtimes. Pass `--port-range <start-end>` to specify a custom range.
 
 ## Platform Support
 

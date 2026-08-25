@@ -1,7 +1,7 @@
 {
   "name": "@barissozudogru/portscan-dev",
-  "version": "0.4.0",
-  "description": "Scan and manage active development ports",
+  "version": "0.4.1",
+  "description": "Identify local development processes by listening port",
   "type": "module",
   "bin": {
     "portscan-dev": "dist/cli.js"
@@ -29,11 +29,16 @@
     "type": "git",
     "url": "git+https://github.com/barissozudogru/portscan-dev.git"
   },
+  "homepage": "https://petri-labs.org/tools/portscan-dev/",
+  "bugs": {
+    "url": "https://github.com/barissozudogru/portscan-dev/issues"
+  },
   "keywords": [
     "ports",
-    "dev",
-    "kill",
-    "process",
+    "localhost",
+    "development",
+    "process-inspector",
+    "address-in-use",
     "cli"
   ],
   "author": "Baris Sozudogru",
