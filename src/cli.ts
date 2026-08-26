@@ -194,6 +194,9 @@ Examples:
   portscan-dev --kill 3000 --signal SIGKILL
   portscan-dev --port-range 3000-5000
   portscan-dev --json
+
+Source and documentation:
+  https://github.com/barissozudogru/portscan-dev
 `);
 }
 

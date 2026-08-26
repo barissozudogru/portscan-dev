@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.4.2] - 2026-08-26
+
+### Added
+
+- Command help now links directly to the source repository.
+
 ## [0.4.1] - 2026-08-26
 
 ### Added

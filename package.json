@@ -1,6 +1,6 @@
 {
   "name": "@barissozudogru/portscan-dev",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Identify local development processes by listening port",
   "type": "module",
   "bin": {
