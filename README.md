@@ -45,6 +45,8 @@ portscan-dev --port-range 3000-5000
 portscan-dev --json
 ```
 
+A kill counts as successful only once nothing is left listening on the port. Every process holding the port is signaled, and a process that traps or ignores the signal is reported as a failure, together with the pid(s) still holding the port.
+
 ## Options
 
 | Flag | Alias | Description | Default |

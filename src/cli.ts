@@ -61,7 +61,11 @@ function printTable(ports: PortProcess[]): void {
 function printKillResults(results: KillResult[]): void {
   for (const r of results) {
     if (r.success) {
-      console.log(c("green", `Killed process ${r.pid} on port ${r.port}`));
+      const target =
+        r.pids && r.pids.length > 1
+          ? `${r.pids.length} processes (${r.pids.join(", ")})`
+          : `process ${r.pid}`;
+      console.log(c("green", `Killed ${target} on port ${r.port}`));
     } else {
       console.error(c("red", `Failed to kill port ${r.port}: ${r.error}`));
     }
