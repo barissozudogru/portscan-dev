@@ -19,6 +19,10 @@ export interface KillOptions {
 export interface KillResult {
   port: number;
   pid: number;
+  // Every pid signaled for this port. A port can be held by several processes
+  // at once, and all of them must be signaled before it frees up. Equals
+  // [pid] unless the port was shared.
+  pids?: number[];
   success: boolean;
   error?: string;
 }

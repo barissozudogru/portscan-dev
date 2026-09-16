@@ -3,6 +3,13 @@ import { PortProcess, ScanOptions, KillOptions, KillResult } from "./types.js";
 
 const EXEC_TIMEOUT = 5000;
 
+// Delivering a signal only proves the OS accepted it. A process with a handler
+// for the signal can keep the port bound indefinitely, so a kill counts as
+// successful only once nothing is listening anymore. These control how long we
+// wait for that to happen before reporting the kill as failed.
+const KILL_GRACE_MS = 2000;
+const KILL_POLL_MS = 100;
+
 const DEV_PORT_RANGES: Array<[number, number]> = [[3000, 9999]];
 // Well-known service ports outside the 3000-9999 dev range. Without these a
 // scan silently omits a running service, which reads as "nothing is on that
@@ -77,7 +84,9 @@ function scanWithSs(): string | null {
 
 function parseLsofOutput(output: string, filterFn: (port: number) => boolean): PortProcess[] {
   const lines = output.split("\n").slice(1); // skip header
-  const seen = new Set<number>();
+  // A port can be held by several processes at once (cluster workers, IPv4 and
+  // IPv6 sockets), so a listener is identified by port and pid together.
+  const seen = new Set<string>();
   const results: PortProcess[] = [];
 
   for (const line of lines) {
@@ -89,10 +98,10 @@ function parseLsofOutput(output: string, filterFn: (port: number) => boolean): P
 
     const processName = parts[0];
     const pid = parseInt(parts[1], 10);
-    
+
     // NAME column may contain state like "(LISTEN)"
-    const nameToken = parts[parts.length - 1].startsWith("(") 
-      ? parts[parts.length - 2] 
+    const nameToken = parts[parts.length - 1].startsWith("(")
+      ? parts[parts.length - 2]
       : parts[parts.length - 1];
 
     if (isNaN(pid) || !nameToken) continue;
@@ -102,9 +111,11 @@ function parseLsofOutput(output: string, filterFn: (port: number) => boolean): P
 
     const port = parseInt(portMatch[1], 10);
     if (isNaN(port) || !filterFn(port)) continue;
-    if (seen.has(port)) continue;
 
-    seen.add(port);
+    const key = `${port}:${pid}`;
+    if (seen.has(key)) continue;
+
+    seen.add(key);
     const { uptime, command } = getProcessInfo(pid);
     results.push({ port, pid, process: processName, command, uptime });
   }
@@ -117,7 +128,9 @@ function parseSsOutput(output: string, filterFn: (port: number) => boolean): Por
   // State  Recv-Q  Send-Q  Local Address:Port  Peer Address:Port  Process
   // LISTEN 0       128     0.0.0.0:3000         0.0.0.0:*         users:(("node",pid=1234,fd=20))
   const lines = output.split("\n").slice(1); // skip header
-  const seen = new Set<number>();
+  // Several processes can share one listening socket; ss lists every pid in a
+  // single users:(...) column, so a listener is identified by port and pid.
+  const seen = new Set<string>();
   const results: PortProcess[] = [];
 
   for (const line of lines) {
@@ -132,22 +145,21 @@ function parseSsOutput(output: string, filterFn: (port: number) => boolean): Por
 
     const port = parseInt(portMatch[1], 10);
     if (isNaN(port) || !filterFn(port)) continue;
-    if (seen.has(port)) continue;
 
-    // Extract pid from users column: users:(("name",pid=1234,fd=20))
-    let pid = -1;
-    let processName = "unknown";
     const userCol = parts.slice(5).join(" ");
-    const pidMatch = userCol.match(/pid=(\d+)/);
     const nameMatch = userCol.match(/\("([^"]+)"/);
-    if (pidMatch) pid = parseInt(pidMatch[1], 10);
-    if (nameMatch) processName = nameMatch[1];
+    const processName = nameMatch ? nameMatch[1] : "unknown";
 
-    if (pid === -1) continue;
+    for (const pidMatch of userCol.matchAll(/pid=(\d+)/g)) {
+      const pid = parseInt(pidMatch[1], 10);
 
-    seen.add(port);
-    const { uptime, command } = getProcessInfo(pid);
-    results.push({ port, pid, process: processName, command, uptime });
+      const key = `${port}:${pid}`;
+      if (seen.has(key)) continue;
+
+      seen.add(key);
+      const { uptime, command } = getProcessInfo(pid);
+      results.push({ port, pid, process: processName, command, uptime });
+    }
   }
 
   return results;
@@ -193,26 +205,46 @@ export function scanPorts(options?: ScanOptions): PortProcess[] {
     }
   }
 
-  return (results ?? []).sort((a, b) => a.port - b.port);
+  // The parsers keep every listener on a port; the scan table shows one row
+  // per port, with the first listener found. The sort above is stable, so
+  // this preserves the parser order within a port.
+  const sorted = (results ?? []).sort((a, b) => a.port - b.port);
+  const seenPorts = new Set<number>();
+  const onePerPort: PortProcess[] = [];
+  for (const entry of sorted) {
+    if (seenPorts.has(entry.port)) continue;
+    seenPorts.add(entry.port);
+    onePerPort.push(entry);
+  }
+  return onePerPort;
 }
 
-function findProcessOnPort(port: number): PortProcess | null {
+function probeLsofPort(port: number): PortProcess[] | null {
+  const filterFn = (p: number) => p === port;
+  try {
+    const output = execSync(`lsof -iTCP:${port} -sTCP:LISTEN -n -P`, {
+      encoding: "utf8",
+      stdio: ["pipe", "pipe", "pipe"],
+      timeout: EXEC_TIMEOUT,
+    });
+    return parseLsofOutput(output, filterFn);
+  } catch (err: unknown) {
+    const error = err as { stdout?: string };
+    if (typeof error.stdout === 'string') return parseLsofOutput(error.stdout, filterFn);
+    return null;
+  }
+}
+
+// Returns every process holding a listening socket on the port. A port can be
+// shared (cluster workers, SO_REUSEPORT), and a kill only frees it when all of
+// them are gone.
+function findProcessesOnPort(port: number): PortProcess[] {
   const isLinux = process.platform === "linux";
   let results: PortProcess[] | null = null;
   const filterFn = (p: number) => p === port;
 
   if (!isLinux) {
-    try {
-      const output = execSync(`lsof -iTCP:${port} -sTCP:LISTEN -n -P`, {
-        encoding: "utf8",
-        stdio: ["pipe", "pipe", "pipe"],
-        timeout: EXEC_TIMEOUT,
-      });
-      results = parseLsofOutput(output, filterFn);
-    } catch (err: unknown) {
-      const error = err as { stdout?: string };
-      if (typeof error.stdout === 'string') results = parseLsofOutput(error.stdout, filterFn);
-    }
+    results = probeLsofPort(port);
   }
 
   if (results === null) {
@@ -229,20 +261,28 @@ function findProcessOnPort(port: number): PortProcess | null {
   }
 
   if (results === null) {
-    try {
-      const output = execSync(`lsof -iTCP:${port} -sTCP:LISTEN -n -P`, {
-        encoding: "utf8",
-        stdio: ["pipe", "pipe", "pipe"],
-        timeout: EXEC_TIMEOUT,
-      });
-      results = parseLsofOutput(output, filterFn);
-    } catch (err: unknown) {
-      const error = err as { stdout?: string };
-      if (typeof error.stdout === 'string') results = parseLsofOutput(error.stdout, filterFn);
-    }
+    results = probeLsofPort(port);
   }
 
-  return results && results.length > 0 ? results[0] : null;
+  return results ?? [];
+}
+
+function sleepMs(ms: number): void {
+  // Everything here is synchronous execSync-style work; block the thread
+  // without spinning the CPU.
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+// Waits out the grace period for the listener to close. Returns false when the
+// port is still bound, which is the outcome the caller must report as a
+// failed kill no matter that the signal was delivered.
+function waitForPortFree(port: number): boolean {
+  const deadline = Date.now() + KILL_GRACE_MS;
+  for (;;) {
+    if (findProcessesOnPort(port).length === 0) return true;
+    if (Date.now() >= deadline) return false;
+    sleepMs(Math.min(KILL_POLL_MS, deadline - Date.now()));
+  }
 }
 
 export function killPorts(options: KillOptions): KillResult[] {
@@ -250,28 +290,56 @@ export function killPorts(options: KillOptions): KillResult[] {
   const results: KillResult[] = [];
 
   for (const port of ports) {
-    const entry = findProcessOnPort(port);
+    const entries = findProcessesOnPort(port);
 
-    if (!entry) {
+    if (entries.length === 0) {
       results.push({
         port,
         pid: -1,
+        pids: [],
         success: false,
         error: `No process found listening on port ${port}`,
       });
       continue;
     }
 
-    try {
-      process.kill(entry.pid, signal);
-      results.push({ port, pid: entry.pid, success: true });
-    } catch (err: unknown) {
-      const error = err as Error;
+    const pids = entries.map((entry) => entry.pid);
+    const signalErrors: string[] = [];
+    for (const pid of pids) {
+      try {
+        process.kill(pid, signal);
+      } catch (err: unknown) {
+        const error = err as NodeJS.ErrnoException;
+        // ESRCH means the process is already gone; whether that frees the
+        // port is settled by the wait below. Anything else is a real failure.
+        if (error.code !== "ESRCH") {
+          signalErrors.push(`pid ${pid}: ${error.message}`);
+        }
+      }
+    }
+
+    if (signalErrors.length > 0) {
       results.push({
         port,
-        pid: entry.pid,
+        pid: pids[0],
+        pids,
         success: false,
-        error: error.message,
+        error: signalErrors.join("; "),
+      });
+      continue;
+    }
+
+    if (waitForPortFree(port)) {
+      results.push({ port, pid: pids[0], pids, success: true });
+    } else {
+      const survivors = findProcessesOnPort(port).map((entry) => entry.pid);
+      const noun = survivors.length === 1 ? "process" : "processes";
+      results.push({
+        port,
+        pid: pids[0],
+        pids,
+        success: false,
+        error: `${noun} ${survivors.join(", ")} still listening on port ${port} after ${signal}`,
       });
     }
   }
