@@ -164,6 +164,59 @@ test("a cooperative process is killed and frees the port", async () => {
   }
 });
 
+test("every port hosted by the same process reports a successful kill", async () => {
+  const portA = await freePort();
+  const portB = await freePort();
+  const child = spawn(
+    process.execPath,
+    ["test/fixtures/two-port-listener.mjs", String(portA), String(portB)],
+    { stdio: "ignore" }
+  );
+
+  try {
+    await waitFor(() => listenerPids(portA).includes(child.pid));
+    await waitFor(() => listenerPids(portB).includes(child.pid));
+
+    const results = killPorts({ ports: [portA, portB] });
+
+    assert.deepEqual(results.map((result) => result.port), [portA, portB]);
+    for (const result of results) {
+      assert.equal(result.success, true, result.error);
+      assert.equal(result.pid, child.pid);
+      assert.deepEqual(result.pids, [child.pid]);
+    }
+    assert.deepEqual(listenerPids(portA), [], "the first port must be free");
+    assert.deepEqual(listenerPids(portB), [], "the second port must be free");
+  } finally {
+    killAll([child.pid]);
+  }
+});
+
+test("the CLI exits 0 when one process hosts all the killed ports", async () => {
+  const portA = await freePort();
+  const portB = await freePort();
+  const child = spawn(
+    process.execPath,
+    ["test/fixtures/two-port-listener.mjs", String(portA), String(portB)],
+    { stdio: "ignore" }
+  );
+
+  try {
+    await waitFor(() => listenerPids(portA).includes(child.pid));
+    await waitFor(() => listenerPids(portB).includes(child.pid));
+
+    const cli = spawnSync(process.execPath, ["dist/cli.js", "--kill", `${portA},${portB}`], {
+      encoding: "utf8",
+    });
+
+    assert.equal(cli.status, 0, `stdout: ${cli.stdout}\nstderr: ${cli.stderr}`);
+    assert.match(cli.stdout, new RegExp(`Killed process ${child.pid} on port ${portA}`));
+    assert.match(cli.stdout, new RegExp(`Killed process ${child.pid} on port ${portB}`));
+  } finally {
+    killAll([child.pid]);
+  }
+});
+
 test("killing a port with no listener reports failure", async () => {
   const port = await freePort();
 

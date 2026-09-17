@@ -287,12 +287,40 @@ function waitForPortFree(port: number): boolean {
 
 export function killPorts(options: KillOptions): KillResult[] {
   const { ports, signal = "SIGTERM" } = options;
+
+  // Resolve every port before signaling anything. One process often hosts
+  // several of the requested ports, and probing a port after its process was
+  // killed for an earlier port finds a dead process, which reads as a failed
+  // kill even though the port is free.
+  const portPids: Array<[number, number[]]> = ports.map((port) => [
+    port,
+    findProcessesOnPort(port).map((entry) => entry.pid),
+  ]);
+
+  // Signal each unique pid exactly once. A pid hosting several of the
+  // requested ports must not be signaled again while it is already dying.
+  const allPids = new Set<number>();
+  for (const [, pids] of portPids) {
+    for (const pid of pids) allPids.add(pid);
+  }
+
+  const signalErrors = new Map<number, string>();
+  for (const pid of allPids) {
+    try {
+      process.kill(pid, signal);
+    } catch (err: unknown) {
+      const error = err as NodeJS.ErrnoException;
+      // ESRCH means the process is already gone; whether that frees the
+      // port is settled by the wait below. Anything else is a real failure.
+      if (error.code !== "ESRCH") {
+        signalErrors.set(pid, `pid ${pid}: ${error.message}`);
+      }
+    }
+  }
+
   const results: KillResult[] = [];
-
-  for (const port of ports) {
-    const entries = findProcessesOnPort(port);
-
-    if (entries.length === 0) {
+  for (const [port, pids] of portPids) {
+    if (pids.length === 0) {
       results.push({
         port,
         pid: -1,
@@ -303,28 +331,16 @@ export function killPorts(options: KillOptions): KillResult[] {
       continue;
     }
 
-    const pids = entries.map((entry) => entry.pid);
-    const signalErrors: string[] = [];
-    for (const pid of pids) {
-      try {
-        process.kill(pid, signal);
-      } catch (err: unknown) {
-        const error = err as NodeJS.ErrnoException;
-        // ESRCH means the process is already gone; whether that frees the
-        // port is settled by the wait below. Anything else is a real failure.
-        if (error.code !== "ESRCH") {
-          signalErrors.push(`pid ${pid}: ${error.message}`);
-        }
-      }
-    }
-
-    if (signalErrors.length > 0) {
+    const errors = pids
+      .map((pid) => signalErrors.get(pid))
+      .filter((message): message is string => message !== undefined);
+    if (errors.length > 0) {
       results.push({
         port,
         pid: pids[0],
         pids,
         success: false,
-        error: signalErrors.join("; "),
+        error: errors.join("; "),
       });
       continue;
     }
