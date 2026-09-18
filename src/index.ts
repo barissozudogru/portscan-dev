@@ -63,7 +63,12 @@ function scanWithLsof(): string | null {
       timeout: EXEC_TIMEOUT,
     });
   } catch (err: unknown) {
-    const error = err as { stdout?: string };
+    const error = err as { stdout?: string; status?: number; code?: string };
+    // A 127 exit status is the shell reporting the command was not found, and
+    // ENOENT means it never ran at all. The empty stdout that comes with them
+    // is not an empty result set, so the error must surface instead of being
+    // read as zero ports.
+    if (error.status === 127 || error.code === "ENOENT") throw err;
     // lsof exits non-zero when no results on some systems; check if we got output
     if (typeof error.stdout === 'string') return error.stdout;
     return null;
