@@ -227,3 +227,17 @@ test("killing a port with no listener reports failure", async () => {
   assert.deepEqual(result.pids, []);
   assert.match(result.error, /No process found listening on port \d+/);
 });
+
+test("a missing scanner binary fails the kill instead of reporting zero processes", () => {
+  // A PATH without lsof or ss reproduces a machine where the scanner binary
+  // is not installed: the shell exits 127 with empty stdout, which must not
+  // be read as zero processes on the port.
+  const result = spawnSync(process.execPath, ["dist/cli.js", "--kill", "3000"], {
+    encoding: "utf8",
+    env: { PATH: "/nonexistent-portscan-dev-test" },
+  });
+
+  assert.notEqual(result.status, 0, `stdout: ${result.stdout}\nstderr: ${result.stderr}`);
+  assert.match(result.stderr, /(?:command )?not found/);
+});
+
