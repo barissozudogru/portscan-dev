@@ -47,3 +47,12 @@ test("port ranges reject every endpoint outside the TCP port range", () => {
     assert.match(result.stderr, /Ports must be between 1 and 65535/);
   }
 });
+
+test("unknown options are rejected instead of being ignored", () => {
+  const result = spawnSync(process.execPath, ["dist/cli.js", "--version", "--unknown"], {
+    encoding: "utf8",
+  });
+
+  assert.equal(result.status, 1, `stdout: ${result.stdout}\nstderr: ${result.stderr}`);
+  assert.match(result.stderr, /Unknown option: --unknown/);
+});
