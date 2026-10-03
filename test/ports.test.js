@@ -36,3 +36,14 @@ test("a missing scanner binary fails the scan instead of reporting zero ports", 
   assert.notEqual(result.status, 0, `stdout: ${result.stdout}\nstderr: ${result.stderr}`);
   assert.match(result.stderr, /(?:command )?not found/);
 });
+
+test("port ranges reject every endpoint outside the TCP port range", () => {
+  for (const range of ["0-1", "1-0", "65536-65535", "65535-65536", "0-65536"]) {
+    const result = spawnSync(process.execPath, ["dist/cli.js", "--port-range", range], {
+      encoding: "utf8",
+    });
+
+    assert.equal(result.status, 1, `${range}: stdout: ${result.stdout}\nstderr: ${result.stderr}`);
+    assert.match(result.stderr, /Ports must be between 1 and 65535/);
+  }
+});

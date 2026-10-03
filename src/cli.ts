@@ -157,6 +157,10 @@ function parseArgs(argv: string[]): ParsedArgs {
       }
       const start = parseInt(rangeMatch[1], 10);
       const end = parseInt(rangeMatch[2], 10);
+      if (start < 1 || start > 65535 || end < 1 || end > 65535) {
+        console.error(`Invalid port range: ${next}. Ports must be between 1 and 65535`);
+        process.exit(1);
+      }
       if (start > end) {
         console.error(`Invalid port range: start (${start}) must be <= end (${end})`);
         process.exit(1);
