@@ -167,6 +167,9 @@ function parseArgs(argv: string[]): ParsedArgs {
       }
       result.portRange = [start, end];
       i++;
+    } else {
+      console.error(`Unknown option: ${arg}`);
+      process.exit(1);
     }
   }
 
