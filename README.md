@@ -58,23 +58,12 @@ A kill counts as successful only once nothing is left listening on the port. Eve
 | `--version` | `-v` | Print version and exit | - |
 | `--help` | `-h` | Show help | - |
 
-## Output Example
+## Reading the report
 
-```
-PORT      PID       PROCESS               UPTIME            COMMAND
-
-3000      28471     node                  00:12:04          node server.js
-3001      28512     node                  00:11:58          npx react-scripts start
-4200      29104     ng                    00:08:31          ng serve --port 4200
-5173      31002     vite                  00:02:17          vite --host
-8080      22891     python3               01:04:42          python3 -m http.server 8080
-5432      1084      postgres              14:22:10          postgres -D /usr/local/var/postgresql@14/data
-6379      1091      redis-server          14:22:08          redis-server *:6379
-```
-
-A live verification with `python3 -m http.server 4567` returned the Python process owning port 4567. The temporary process was stopped after verification.
-
-If this saves you time, consider [starring the repository](https://github.com/barissozudogru/portscan-dev). It helps other developers find it.
+The table reports port, PID, process name, uptime, and command line for local
+listeners. Use `--json` for structured output. Review the owning process before
+using `--kill`; command lines can include sensitive arguments, so inspect output
+before sharing it.
 
 ## Scanned Ports
 
@@ -96,6 +85,20 @@ Process uptime and full command are resolved via `ps` on supported platforms.
 |---|---|
 | `0` | Success (scan completed or ports killed) |
 | `1` | Failure (one or more ports could not be killed) |
+
+## Development and support
+
+Report problems through [GitHub issues](https://github.com/barissozudogru/portscan-dev/issues). See [CONTRIBUTING.md](./CONTRIBUTING.md) for the contribution workflow. For vulnerabilities, follow [SECURITY.md](./SECURITY.md).
+
+To build and test a source checkout with Node.js 22:
+
+```bash
+npm ci
+npm test
+npm run build
+```
+
+The default branch can contain changes that have not yet been published to npm.
 
 ## License
 
