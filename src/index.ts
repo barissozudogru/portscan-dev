@@ -33,26 +33,48 @@ function isDevPort(port: number): boolean {
   return DEV_PORT_RANGES.some(([min, max]) => port >= min && port <= max);
 }
 
-function getProcessInfo(pid: number): { uptime: string; command: string } {
+// Queries process uptime and command line arguments in a single batch so
+// scanning multiple listening ports does not spawn ps once per port.
+function getProcessesInfo(pids: number[]): Map<number, { uptime: string; command: string }> {
+  const results = new Map<number, { uptime: string; command: string }>();
+  const uniquePids = [...new Set(pids.filter((pid) => !isNaN(pid) && pid > 0))];
+  if (uniquePids.length === 0) return results;
+
+  let raw = "";
   try {
-    const raw = execSync(`ps -o etime=,args= -p ${pid} 2>/dev/null`, {
+    raw = execSync(`ps -o pid=,etime=,args= -p ${uniquePids.join(",")} 2>/dev/null`, {
       encoding: "utf8",
+      stdio: ["pipe", "pipe", "pipe"],
       timeout: EXEC_TIMEOUT,
-    }).trim();
-
-    if (!raw) return { uptime: "unknown", command: "unknown" };
-
-    // etime is a fixed-width column; first whitespace-delimited token is etime,
-    // the rest is the full args string.
-    const spaceIdx = raw.search(/\s/);
-    if (spaceIdx === -1) return { uptime: raw, command: "unknown" };
-
-    const uptime = raw.slice(0, spaceIdx).trim();
-    const command = raw.slice(spaceIdx).trim();
-    return { uptime: uptime || "unknown", command: command || "unknown" };
-  } catch {
-    return { uptime: "unknown", command: "unknown" };
+    });
+  } catch (err: unknown) {
+    const error = err as { stdout?: string };
+    if (typeof error.stdout === "string") {
+      raw = error.stdout;
+    }
   }
+
+  for (const line of raw.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    // First token is pid, second is etime, remaining tokens are args.
+    const match = trimmed.match(/^(\d+)\s+(\S+)(?:\s+(.*))?$/);
+    if (!match) continue;
+
+    const pid = parseInt(match[1], 10);
+    const uptime = match[2] || "unknown";
+    const command = (match[3] && match[3].trim()) || "unknown";
+    results.set(pid, { uptime, command });
+  }
+
+  for (const pid of uniquePids) {
+    if (!results.has(pid)) {
+      results.set(pid, { uptime: "unknown", command: "unknown" });
+    }
+  }
+
+  return results;
 }
 
 function scanWithLsof(): string | null {
@@ -92,7 +114,7 @@ function parseLsofOutput(output: string, filterFn: (port: number) => boolean): P
   // A port can be held by several processes at once (cluster workers, IPv4 and
   // IPv6 sockets), so a listener is identified by port and pid together.
   const seen = new Set<string>();
-  const results: PortProcess[] = [];
+  const rawEntries: Array<{ port: number; pid: number; process: string }> = [];
 
   for (const line of lines) {
     if (!line.trim()) continue;
@@ -121,11 +143,22 @@ function parseLsofOutput(output: string, filterFn: (port: number) => boolean): P
     if (seen.has(key)) continue;
 
     seen.add(key);
-    const { uptime, command } = getProcessInfo(pid);
-    results.push({ port, pid, process: processName, command, uptime });
+    rawEntries.push({ port, pid, process: processName });
   }
 
-  return results;
+  const pids = rawEntries.map((entry) => entry.pid);
+  const processInfo = getProcessesInfo(pids);
+
+  return rawEntries.map((entry) => {
+    const info = processInfo.get(entry.pid) ?? { uptime: "unknown", command: "unknown" };
+    return {
+      port: entry.port,
+      pid: entry.pid,
+      process: entry.process,
+      command: info.command,
+      uptime: info.uptime,
+    };
+  });
 }
 
 function parseSsOutput(output: string, filterFn: (port: number) => boolean): PortProcess[] {
@@ -136,7 +169,7 @@ function parseSsOutput(output: string, filterFn: (port: number) => boolean): Por
   // Several processes can share one listening socket; ss lists every pid in a
   // single users:(...) column, so a listener is identified by port and pid.
   const seen = new Set<string>();
-  const results: PortProcess[] = [];
+  const rawEntries: Array<{ port: number; pid: number; process: string }> = [];
 
   for (const line of lines) {
     if (!line.trim()) continue;
@@ -162,12 +195,23 @@ function parseSsOutput(output: string, filterFn: (port: number) => boolean): Por
       if (seen.has(key)) continue;
 
       seen.add(key);
-      const { uptime, command } = getProcessInfo(pid);
-      results.push({ port, pid, process: processName, command, uptime });
+      rawEntries.push({ port, pid, process: processName });
     }
   }
 
-  return results;
+  const pids = rawEntries.map((entry) => entry.pid);
+  const processInfo = getProcessesInfo(pids);
+
+  return rawEntries.map((entry) => {
+    const info = processInfo.get(entry.pid) ?? { uptime: "unknown", command: "unknown" };
+    return {
+      port: entry.port,
+      pid: entry.pid,
+      process: entry.process,
+      command: info.command,
+      uptime: info.uptime,
+    };
+  });
 }
 
 export function scanPorts(options?: ScanOptions): PortProcess[] {
