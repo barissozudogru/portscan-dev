@@ -33,6 +33,12 @@ function isDevPort(port: number): boolean {
   return DEV_PORT_RANGES.some(([min, max]) => port >= min && port <= max);
 }
 
+function validatePort(port: number): void {
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new RangeError(`Invalid port number: ${port}. Ports must be integers between 1 and 65535`);
+  }
+}
+
 function getProcessInfo(pid: number): { uptime: string; command: string } {
   try {
     const raw = execSync(`ps -o etime=,args= -p ${pid} 2>/dev/null`, {
@@ -174,6 +180,10 @@ export function scanPorts(options?: ScanOptions): PortProcess[] {
   const portRange = options?.portRange;
   const explicitPorts = options?.ports;
 
+  if (explicitPorts) {
+    for (const port of explicitPorts) validatePort(port);
+  }
+
   function filterFn(port: number): boolean {
     if (explicitPorts && explicitPorts.length > 0) {
       return explicitPorts.includes(port);
@@ -299,9 +309,7 @@ export function killPorts(options: KillOptions): KillResult[] {
   const { ports, signal = "SIGTERM" } = options;
 
   for (const port of ports) {
-    if (!Number.isInteger(port) || port < 1 || port > 65535) {
-      throw new RangeError(`Invalid port number: ${port}. Ports must be integers between 1 and 65535`);
-    }
+    validatePort(port);
   }
 
   // Resolve every port before signaling anything. One process often hosts
