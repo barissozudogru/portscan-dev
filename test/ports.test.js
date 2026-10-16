@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { isDevPortForTest as isDevPort } from "../dist/index.js";
+import { isDevPortForTest as isDevPort, killPorts } from "../dist/index.js";
 
 test("the 3000-9999 dev range is covered", () => {
   assert.equal(isDevPort(3000), true);
@@ -55,4 +55,16 @@ test("unknown options are rejected instead of being ignored", () => {
 
   assert.equal(result.status, 1, `stdout: ${result.stdout}\nstderr: ${result.stderr}`);
   assert.match(result.stderr, /Unknown option: --unknown/);
+});
+
+test("kill rejects invalid port numbers before scanning", () => {
+  for (const port of [0, 65536, 3000.5, NaN]) {
+    assert.throws(
+      () => killPorts({ ports: [port] }),
+      {
+        name: "RangeError",
+        message: new RegExp(`Invalid port number: ${String(port).replace(".", "\\.")}`),
+      }
+    );
+  }
 });

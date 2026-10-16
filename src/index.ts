@@ -298,6 +298,12 @@ function waitForPortFree(port: number): boolean {
 export function killPorts(options: KillOptions): KillResult[] {
   const { ports, signal = "SIGTERM" } = options;
 
+  for (const port of ports) {
+    if (!Number.isInteger(port) || port < 1 || port > 65535) {
+      throw new RangeError(`Invalid port number: ${port}. Ports must be integers between 1 and 65535`);
+    }
+  }
+
   // Resolve every port before signaling anything. One process often hosts
   // several of the requested ports, and probing a port after its process was
   // killed for an earlier port finds a dead process, which reads as a failed
