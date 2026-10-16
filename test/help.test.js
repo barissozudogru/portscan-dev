@@ -11,3 +11,13 @@ test("help links to the source repository", () => {
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /https:\/\/github\.com\/barissozudogru\/portscan-dev/);
 });
+
+test("signal requires a kill target instead of being ignored", () => {
+  const result = spawnSync(process.execPath, ["dist/cli.js", "--signal", "SIGKILL"], {
+    cwd: process.cwd(),
+    encoding: "utf8",
+  });
+
+  assert.equal(result.status, 1, `stdout: ${result.stdout}\nstderr: ${result.stderr}`);
+  assert.match(result.stderr, /--signal requires --kill/);
+});
