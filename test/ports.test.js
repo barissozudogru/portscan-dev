@@ -87,6 +87,15 @@ test("unknown options are rejected instead of being ignored", () => {
   assert.match(result.stderr, /Unknown option: --unknown/);
 });
 
+test("repeated kill options are rejected instead of dropping the first target", () => {
+  const result = spawnSync(process.execPath, ["dist/cli.js", "--kill", "3000", "--kill", "4000"], {
+    encoding: "utf8",
+  });
+
+  assert.equal(result.status, 1, `stdout: ${result.stdout}\nstderr: ${result.stderr}`);
+  assert.match(result.stderr, /--kill may only be provided once/);
+});
+
 test("port ranges are rejected with kill targets instead of being ignored", () => {
   const result = spawnSync(process.execPath, ["dist/cli.js", "--kill", "3000", "--port-range", "1-1"], {
     encoding: "utf8",
