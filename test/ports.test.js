@@ -1,5 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import net from "node:net";
 import { isDevPortForTest as isDevPort, killPorts, scanPorts } from "../dist/index.js";
@@ -177,5 +180,101 @@ test("scan rejects invalid port range endpoints and ordering", () => {
       { name: "RangeError" },
       `${range.join("-")} should be rejected`
     );
+  }
+});
+
+test("scanning multiple ports queries process info in a single ps batch", async (t) => {
+  let portA, portB;
+  try {
+    portA = await freePort();
+    do {
+      portB = await freePort();
+    } while (portB === portA);
+  } catch (error) {
+    if (error?.code === "EPERM") {
+      t.skip("the test environment does not permit local listeners");
+      return;
+    }
+    throw error;
+  }
+
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "portscan-ps-"));
+  const logFile = path.join(tmpDir, "ps.log");
+  const psScript = path.join(tmpDir, "ps");
+  const systemPs = fs.existsSync("/bin/ps") ? "/bin/ps" : "/usr/bin/ps";
+
+  // Intercept ps executions to verify batching.
+  fs.writeFileSync(
+    psScript,
+    `#!/bin/sh\necho "$@" >> "${logFile}"\nexec ${systemPs} "$@"\n`,
+    { mode: 0o755 }
+  );
+
+  const childA = spawn(
+    process.execPath,
+    ["test/fixtures/plain-listener.mjs", String(portA)],
+    { stdio: "ignore" }
+  );
+  const childB = spawn(
+    process.execPath,
+    ["test/fixtures/plain-listener.mjs", String(portB)],
+    { stdio: "ignore" }
+  );
+
+  const originalPath = process.env.PATH;
+  try {
+    await waitForListener(portA);
+    await waitForListener(portB);
+
+    process.env.PATH = `${tmpDir}:${originalPath}`;
+    const results = scanPorts({ ports: [portA, portB] });
+
+    const logged = fs.existsSync(logFile)
+      ? fs.readFileSync(logFile, "utf8").trim().split("\n")
+      : [];
+
+    assert.equal(
+      logged.length,
+      1,
+      `ps should be invoked once in a batch query, got: ${JSON.stringify(logged)}`
+    );
+    assert.match(logged[0], /-o pid=,etime=,args= -p /);
+    assert.ok(
+      logged[0].includes(String(childA.pid)),
+      `ps invocation should include pid ${childA.pid}`
+    );
+    assert.ok(
+      logged[0].includes(String(childB.pid)),
+      `ps invocation should include pid ${childB.pid}`
+    );
+
+    assert.equal(results.length, 2);
+
+    const entryA = results.find((r) => r.port === portA);
+    const entryB = results.find((r) => r.port === portB);
+
+    assert.ok(entryA, `expected port ${portA} in results`);
+    assert.ok(entryB, `expected port ${portB} in results`);
+
+    assert.equal(entryA.pid, childA.pid);
+    assert.notEqual(entryA.command, "unknown");
+    assert.notEqual(entryA.uptime, "unknown");
+
+    assert.equal(entryB.pid, childB.pid);
+    assert.notEqual(entryB.command, "unknown");
+    assert.notEqual(entryB.uptime, "unknown");
+  } finally {
+    process.env.PATH = originalPath;
+    if (childA?.pid) {
+      try {
+        process.kill(childA.pid, "SIGKILL");
+      } catch {}
+    }
+    if (childB?.pid) {
+      try {
+        process.kill(childB.pid, "SIGKILL");
+      } catch {}
+    }
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   }
 });
