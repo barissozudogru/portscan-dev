@@ -1,7 +1,37 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
+import net from "node:net";
 import { isDevPortForTest as isDevPort, killPorts, scanPorts } from "../dist/index.js";
+
+function freePort() {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer();
+    server.on("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      const { port } = server.address();
+      server.close(() => resolve(port));
+    });
+  });
+}
+
+async function waitForListener(port) {
+  for (;;) {
+    try {
+      await new Promise((resolve, reject) => {
+        const socket = net.createConnection({ port, host: "127.0.0.1" });
+        socket.once("connect", () => {
+          socket.destroy();
+          resolve();
+        });
+        socket.once("error", reject);
+      });
+      return;
+    } catch {
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+  }
+}
 
 test("the 3000-9999 dev range is covered", () => {
   assert.equal(isDevPort(3000), true);
@@ -92,6 +122,36 @@ test("scan rejects invalid explicit port numbers", () => {
 
 test("scan with an explicit empty port list returns no ports", () => {
   assert.deepEqual(scanPorts({ ports: [] }), []);
+});
+
+test("kill reports each duplicate port request once", async (t) => {
+  let port;
+  try {
+    port = await freePort();
+  } catch (error) {
+    if (error?.code === "EPERM") {
+      t.skip("the test environment does not permit local listeners");
+      return;
+    }
+    throw error;
+  }
+  const child = spawn(process.execPath, ["test/fixtures/plain-listener.mjs", String(port)], {
+    stdio: "ignore",
+  });
+
+  try {
+    await waitForListener(port);
+    const results = killPorts({ ports: [port, port] });
+
+    assert.deepEqual(results.map((result) => result.port), [port]);
+    assert.equal(results[0].success, true, results[0].error);
+  } finally {
+    try {
+      process.kill(child.pid, "SIGKILL");
+    } catch {
+      // The regression may have already stopped the owned child.
+    }
+  }
 });
 
 test("scan rejects invalid port range endpoints and ordering", () => {
