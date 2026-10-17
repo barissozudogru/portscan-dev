@@ -80,3 +80,13 @@ test("scan rejects invalid explicit port numbers", () => {
     );
   }
 });
+
+test("scan rejects invalid port range endpoints and ordering", () => {
+  for (const range of [[0, 1], [1, 0], [65536, 65535], [65535, 65536]]) {
+    assert.throws(
+      () => scanPorts({ portRange: range }),
+      { name: "RangeError" },
+      `${range.join("-")} should be rejected`
+    );
+  }
+});
