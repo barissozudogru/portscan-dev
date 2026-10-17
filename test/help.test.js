@@ -21,3 +21,17 @@ test("signal requires a kill target instead of being ignored", () => {
   assert.equal(result.status, 1, `stdout: ${result.stdout}\nstderr: ${result.stderr}`);
   assert.match(result.stderr, /--signal requires --kill/);
 });
+
+test("repeated port ranges are rejected instead of silently replacing the first range", () => {
+  const result = spawnSync(
+    process.execPath,
+    ["dist/cli.js", "--port-range", "1-1", "--port-range", "2-2", "--help"],
+    {
+      cwd: process.cwd(),
+      encoding: "utf8",
+    }
+  );
+
+  assert.equal(result.status, 1, `stdout: ${result.stdout}\nstderr: ${result.stderr}`);
+  assert.match(result.stderr, /--port-range may only be provided once/);
+});

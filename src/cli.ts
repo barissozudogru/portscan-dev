@@ -152,6 +152,10 @@ function parseArgs(argv: string[]): ParsedArgs {
       result.signal = next as NodeJS.Signals;
       i++;
     } else if (arg === "--port-range") {
+      if (result.portRange !== null) {
+        console.error("--port-range may only be provided once");
+        process.exit(1);
+      }
       const next = args[i + 1];
       if (!next || next.startsWith("-")) {
         console.error("--port-range requires a range, e.g. --port-range 3000-9000");
