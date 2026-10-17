@@ -104,6 +104,10 @@ function parseArgs(argv: string[]): ParsedArgs {
     } else if (arg === "--json" || arg === "-j") {
       result.json = true;
     } else if (arg === "--kill" || arg === "-k") {
+      if (result.kill.length > 0) {
+        console.error("--kill may only be provided once; separate multiple ports with commas");
+        process.exit(1);
+      }
       const next = args[i + 1];
       if (!next || next.startsWith("-")) {
         console.error("--kill requires one or more port numbers, e.g. --kill 3000 or --kill 3000,4000");
