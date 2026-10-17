@@ -39,6 +39,14 @@ function validatePort(port: number): void {
   }
 }
 
+function validatePortRange(range: [number, number]): void {
+  validatePort(range[0]);
+  validatePort(range[1]);
+  if (range[0] > range[1]) {
+    throw new RangeError(`Invalid port range: start (${range[0]}) must be <= end (${range[1]})`);
+  }
+}
+
 function getProcessInfo(pid: number): { uptime: string; command: string } {
   try {
     const raw = execSync(`ps -o etime=,args= -p ${pid} 2>/dev/null`, {
@@ -183,6 +191,7 @@ export function scanPorts(options?: ScanOptions): PortProcess[] {
   if (explicitPorts) {
     for (const port of explicitPorts) validatePort(port);
   }
+  if (portRange) validatePortRange(portRange);
 
   function filterFn(port: number): boolean {
     if (explicitPorts && explicitPorts.length > 0) {
