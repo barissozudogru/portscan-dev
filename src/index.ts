@@ -327,7 +327,8 @@ export function killPorts(options: KillOptions): KillResult[] {
   // several of the requested ports, and probing a port after its process was
   // killed for an earlier port finds a dead process, which reads as a failed
   // kill even though the port is free.
-  const portPids: Array<[number, number[]]> = ports.map((port) => [
+  const uniquePorts = [...new Set(ports)];
+  const portPids: Array<[number, number[]]> = uniquePorts.map((port) => [
     port,
     findProcessesOnPort(port).map((entry) => entry.pid),
   ]);
