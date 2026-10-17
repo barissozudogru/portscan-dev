@@ -124,6 +124,13 @@ test("scan with an explicit empty port list returns no ports", () => {
   assert.deepEqual(scanPorts({ ports: [] }), []);
 });
 
+test("scan rejects explicit ports combined with a port range", () => {
+  assert.throws(
+    () => scanPorts({ ports: [3000], portRange: [3000, 4000] }),
+    { name: "RangeError", message: "ports and portRange cannot be used together" }
+  );
+});
+
 test("kill reports each duplicate port request once", async (t) => {
   let port;
   try {

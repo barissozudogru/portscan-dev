@@ -193,6 +193,10 @@ export function scanPorts(options?: ScanOptions): PortProcess[] {
   }
   if (portRange) validatePortRange(portRange);
 
+  if (explicitPorts && portRange) {
+    throw new RangeError("ports and portRange cannot be used together");
+  }
+
   if (explicitPorts?.length === 0) return [];
 
   function filterFn(port: number): boolean {
