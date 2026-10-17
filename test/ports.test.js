@@ -81,6 +81,10 @@ test("scan rejects invalid explicit port numbers", () => {
   }
 });
 
+test("scan with an explicit empty port list returns no ports", () => {
+  assert.deepEqual(scanPorts({ ports: [] }), []);
+});
+
 test("scan rejects invalid port range endpoints and ordering", () => {
   for (const range of [[0, 1], [1, 0], [65536, 65535], [65535, 65536]]) {
     assert.throws(
