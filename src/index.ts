@@ -29,6 +29,7 @@ const EXTRA_PORTS: number[] = [
 ];
 
 function isDevPort(port: number): boolean {
+  if (!Number.isInteger(port) || port < 1 || port > 65535) return false;
   if (EXTRA_PORTS.includes(port)) return true;
   return DEV_PORT_RANGES.some(([min, max]) => port >= min && port <= max);
 }

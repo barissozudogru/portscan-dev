@@ -44,6 +44,10 @@ test("the 3000-9999 dev range is covered", () => {
   assert.equal(isDevPort(10000), false);
 });
 
+test("invalid fractional ports are not classified as development ports", () => {
+  assert.equal(isDevPort(3000.5), false);
+});
+
 test("well-known service ports outside the range are covered", () => {
   for (const p of [1433, 1521, 2375, 2376, 5672, 11211, 11434, 15672, 27017]) {
     assert.equal(isDevPort(p), true, `port ${p} should be scanned`);
