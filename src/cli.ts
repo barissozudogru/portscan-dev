@@ -131,6 +131,10 @@ function parseArgs(argv: string[]): ParsedArgs {
       result.kill = parsedPorts;
       i++;
     } else if (arg === "--signal" || arg === "-s") {
+      if (result.signalProvided) {
+        console.error("--signal may only be provided once");
+        process.exit(1);
+      }
       result.signalProvided = true;
       const next = args[i + 1];
       if (!next || next.startsWith("-")) {
