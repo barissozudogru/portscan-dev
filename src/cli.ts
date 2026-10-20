@@ -229,6 +229,11 @@ Source and documentation:
 function main(): void {
   const { kill, json, help, version, signalProvided, signal, portRange } = parseArgs(process.argv);
 
+  if (signalProvided && kill.length === 0) {
+    console.error("--signal requires --kill with one or more port numbers");
+    process.exit(1);
+  }
+
   if (version) {
     console.log(pkg.version);
     process.exit(0);
@@ -237,11 +242,6 @@ function main(): void {
   if (help) {
     printHelp();
     process.exit(0);
-  }
-
-  if (signalProvided && kill.length === 0) {
-    console.error("--signal requires --kill with one or more port numbers");
-    process.exit(1);
   }
 
   if (portRange && kill.length > 0) {
