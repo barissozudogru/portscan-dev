@@ -1,4 +1,5 @@
 import { execSync } from "child_process";
+import { constants as osConstants } from "os";
 import { PortProcess, ScanOptions, KillOptions, KillResult } from "./types.js";
 
 const EXEC_TIMEOUT = 5000;
@@ -45,6 +46,12 @@ function validatePortRange(range: [number, number]): void {
   validatePort(range[1]);
   if (range[0] > range[1]) {
     throw new RangeError(`Invalid port range: start (${range[0]}) must be <= end (${range[1]})`);
+  }
+}
+
+function validateSignal(signal: NodeJS.Signals): void {
+  if (!Object.prototype.hasOwnProperty.call(osConstants.signals, signal)) {
+    throw new RangeError(`Invalid signal: ${signal}`);
   }
 }
 
@@ -371,6 +378,7 @@ export function killPorts(options: KillOptions): KillResult[] {
   for (const port of ports) {
     validatePort(port);
   }
+  validateSignal(signal);
 
   // Resolve every port before signaling anything. One process often hosts
   // several of the requested ports, and probing a port after its process was
