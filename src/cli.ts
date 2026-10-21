@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 
 import { createRequire } from "module";
+import { constants as osConstants } from "os";
 import { scanPorts, killPorts } from "./index.js";
 import { PortProcess, KillResult, ScanOptions } from "./types.js";
 
 // Load version from package.json without bundling issues
 const require = createRequire(import.meta.url);
 const pkg = require("../package.json") as { version: string };
+const VALID_SIGNALS = Object.keys(osConstants.signals);
 
 // TTY-aware color helpers
 const isTTY = process.stdout.isTTY === true;
@@ -141,14 +143,6 @@ function parseArgs(argv: string[]): ParsedArgs {
         console.error("--signal requires a signal name, e.g. --signal SIGKILL");
         process.exit(1);
       }
-      const VALID_SIGNALS: readonly string[] = [
-        "SIGTERM", "SIGKILL", "SIGINT", "SIGHUP", "SIGQUIT",
-        "SIGUSR1", "SIGUSR2", "SIGPIPE", "SIGALRM", "SIGCHLD",
-        "SIGCONT", "SIGSTOP", "SIGTSTP", "SIGTTIN", "SIGTTOU",
-        "SIGBUS", "SIGFPE", "SIGILL", "SIGSEGV", "SIGSYS",
-        "SIGTRAP", "SIGURG", "SIGVTALRM", "SIGXCPU", "SIGXFSZ",
-        "SIGWINCH",
-      ];
       if (!VALID_SIGNALS.includes(next)) {
         console.error(`Unknown signal: ${next}. Valid signals: ${VALID_SIGNALS.join(", ")}`);
         process.exit(1);
