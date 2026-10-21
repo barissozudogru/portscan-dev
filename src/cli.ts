@@ -234,6 +234,11 @@ function main(): void {
     process.exit(1);
   }
 
+  if (portRange && kill.length > 0) {
+    console.error("--port-range cannot be used with --kill");
+    process.exit(1);
+  }
+
   if (version) {
     console.log(pkg.version);
     process.exit(0);
@@ -242,11 +247,6 @@ function main(): void {
   if (help) {
     printHelp();
     process.exit(0);
-  }
-
-  if (portRange && kill.length > 0) {
-    console.error("--port-range cannot be used with --kill");
-    process.exit(1);
   }
 
   if (kill.length > 0) {
