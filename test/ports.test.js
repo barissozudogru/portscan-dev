@@ -124,6 +124,13 @@ test("kill rejects invalid port numbers before scanning", () => {
   }
 });
 
+test("kill rejects invalid signals before scanning", () => {
+  assert.throws(
+    () => killPorts({ ports: [3000], signal: "NOT_A_SIGNAL" }),
+    { name: "RangeError", message: "Invalid signal: NOT_A_SIGNAL" }
+  );
+});
+
 test("scan rejects invalid explicit port numbers", () => {
   for (const port of [0, 65536, 3000.5, NaN]) {
     assert.throws(
