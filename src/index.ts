@@ -42,6 +42,9 @@ function validatePort(port: number): void {
 }
 
 function validatePortRange(range: [number, number]): void {
+  if (!Array.isArray(range) || range.length !== 2) {
+    throw new RangeError("Invalid port range: expected exactly two endpoints");
+  }
   validatePort(range[0]);
   validatePort(range[1]);
   if (range[0] > range[1]) {
