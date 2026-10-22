@@ -206,6 +206,13 @@ test("scan rejects invalid port range endpoints and ordering", () => {
   }
 });
 
+test("scan rejects port ranges with extra endpoints", () => {
+  assert.throws(
+    () => scanPorts({ portRange: [3000, 4000, 5000] }),
+    { name: "RangeError", message: "Invalid port range: expected exactly two endpoints" }
+  );
+});
+
 test("scanning multiple ports queries process info in a single ps batch", async (t) => {
   let portA, portB;
   try {
