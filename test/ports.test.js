@@ -169,6 +169,13 @@ test("scan rejects a null explicit port list instead of treating it as omitted",
   );
 });
 
+test("scan rejects a null port range instead of treating it as omitted", () => {
+  assert.throws(
+    () => scanPorts({ portRange: null }),
+    { name: "RangeError", message: "Invalid port range: expected exactly two endpoints" }
+  );
+});
+
 test("scan with an explicit empty port list returns no ports", () => {
   assert.deepEqual(scanPorts({ ports: [] }), []);
 });

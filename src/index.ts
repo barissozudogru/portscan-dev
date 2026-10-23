@@ -249,7 +249,7 @@ export function scanPorts(options?: ScanOptions): PortProcess[] {
   if (explicitPorts) {
     for (const port of explicitPorts) validatePort(port);
   }
-  if (portRange) validatePortRange(portRange);
+  if (portRange !== undefined) validatePortRange(portRange);
 
   if (explicitPorts && portRange) {
     throw new RangeError("ports and portRange cannot be used together");
