@@ -155,6 +155,13 @@ test("scan rejects invalid explicit port numbers", () => {
   }
 });
 
+test("scan rejects a null explicit port list instead of treating it as omitted", () => {
+  assert.throws(
+    () => scanPorts({ ports: null, portRange: [1, 1] }),
+    { name: "RangeError", message: "Invalid ports: expected an array of port numbers" }
+  );
+});
+
 test("scan with an explicit empty port list returns no ports", () => {
   assert.deepEqual(scanPorts({ ports: [] }), []);
 });
