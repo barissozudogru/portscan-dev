@@ -136,6 +136,13 @@ test("kill rejects invalid port numbers before scanning", () => {
   }
 });
 
+test("kill rejects a null port list with a clear validation error", () => {
+  assert.throws(
+    () => killPorts({ ports: null }),
+    { name: "RangeError", message: "Invalid ports: expected an array of port numbers" }
+  );
+});
+
 test("kill rejects invalid signals before scanning", () => {
   assert.throws(
     () => killPorts({ ports: [3000], signal: "NOT_A_SIGNAL" }),
