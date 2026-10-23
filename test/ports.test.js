@@ -150,6 +150,13 @@ test("kill rejects null options with a clear validation error", () => {
   );
 });
 
+test("kill rejects array options with a clear validation error", () => {
+  assert.throws(
+    () => killPorts([]),
+    { name: "RangeError", message: "Invalid kill options: expected an object" }
+  );
+});
+
 test("kill rejects invalid signals before scanning", () => {
   assert.throws(
     () => killPorts({ ports: [3000], signal: "NOT_A_SIGNAL" }),
