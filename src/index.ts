@@ -240,6 +240,10 @@ function parseSsOutput(output: string, filterFn: (port: number) => boolean): Por
 }
 
 export function scanPorts(options?: ScanOptions): PortProcess[] {
+  if (options === null) {
+    throw new RangeError("Invalid scan options: expected an object");
+  }
+
   const portRange = options?.portRange;
   const explicitPorts = options?.ports;
 
