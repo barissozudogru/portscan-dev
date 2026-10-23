@@ -386,7 +386,7 @@ function waitForPortFree(port: number): boolean {
 }
 
 export function killPorts(options: KillOptions): KillResult[] {
-  if (options === null || typeof options !== "object") {
+  if (options === null || typeof options !== "object" || Array.isArray(options)) {
     throw new RangeError("Invalid kill options: expected an object");
   }
 
