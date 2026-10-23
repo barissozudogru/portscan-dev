@@ -243,6 +243,9 @@ export function scanPorts(options?: ScanOptions): PortProcess[] {
   const portRange = options?.portRange;
   const explicitPorts = options?.ports;
 
+  if (explicitPorts !== undefined && !Array.isArray(explicitPorts)) {
+    throw new RangeError("Invalid ports: expected an array of port numbers");
+  }
   if (explicitPorts) {
     for (const port of explicitPorts) validatePort(port);
   }
