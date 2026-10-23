@@ -183,6 +183,13 @@ test("scan rejects null options instead of treating them as omitted", () => {
   );
 });
 
+test("scan rejects primitive options instead of treating them as omitted", () => {
+  assert.throws(
+    () => scanPorts(42),
+    { name: "RangeError", message: "Invalid scan options: expected an object" }
+  );
+});
+
 test("scan rejects a null port range instead of treating it as omitted", () => {
   assert.throws(
     () => scanPorts({ portRange: null }),
