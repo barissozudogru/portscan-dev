@@ -381,6 +381,9 @@ function waitForPortFree(port: number): boolean {
 export function killPorts(options: KillOptions): KillResult[] {
   const { ports, signal = "SIGTERM" } = options;
 
+  if (!Array.isArray(ports)) {
+    throw new RangeError("Invalid ports: expected an array of port numbers");
+  }
   for (const port of ports) {
     validatePort(port);
   }
