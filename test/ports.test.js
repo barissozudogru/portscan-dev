@@ -171,6 +171,15 @@ test("kill rejects symbol signals with a validation error", () => {
   );
 });
 
+test("kill rejects null-prototype signals with a validation error", () => {
+  const badSignal = Object.create(null);
+
+  assert.throws(
+    () => killPorts({ ports: [], signal: badSignal }),
+    { name: "RangeError", message: "Invalid signal: <unprintable>" }
+  );
+});
+
 test("scan rejects invalid explicit port numbers", () => {
   for (const port of [0, 65536, 3000.5, NaN]) {
     assert.throws(
