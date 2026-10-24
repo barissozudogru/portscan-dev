@@ -35,9 +35,17 @@ function isDevPort(port: number): boolean {
   return DEV_PORT_RANGES.some(([min, max]) => port >= min && port <= max);
 }
 
+function describeValue(value: unknown): string {
+  try {
+    return String(value);
+  } catch {
+    return "<unprintable>";
+  }
+}
+
 function validatePort(port: number): void {
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
-    throw new RangeError(`Invalid port number: ${String(port)}. Ports must be integers between 1 and 65535`);
+    throw new RangeError(`Invalid port number: ${describeValue(port)}. Ports must be integers between 1 and 65535`);
   }
 }
 

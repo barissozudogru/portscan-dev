@@ -190,6 +190,15 @@ test("scan rejects symbol-valued ports with a RangeError", () => {
   );
 });
 
+test("scan rejects null-prototype ports with a RangeError", () => {
+  const badPort = Object.create(null);
+
+  assert.throws(
+    () => scanPorts({ ports: [badPort] }),
+    { name: "RangeError", message: /Invalid port number: <unprintable>/ }
+  );
+});
+
 test("scan rejects a null explicit port list instead of treating it as omitted", () => {
   assert.throws(
     () => scanPorts({ ports: null, portRange: [1, 1] }),
