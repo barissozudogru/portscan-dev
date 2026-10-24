@@ -183,6 +183,13 @@ test("scan rejects invalid explicit port numbers", () => {
   }
 });
 
+test("scan rejects symbol-valued ports with a RangeError", () => {
+  assert.throws(
+    () => scanPorts({ ports: [Symbol("bad-port")] }),
+    { name: "RangeError", message: /Invalid port number: Symbol\(bad-port\)/ }
+  );
+});
+
 test("scan rejects a null explicit port list instead of treating it as omitted", () => {
   assert.throws(
     () => scanPorts({ ports: null, portRange: [1, 1] }),
