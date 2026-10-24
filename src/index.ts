@@ -54,7 +54,7 @@ function validatePortRange(range: [number, number]): void {
 
 function validateSignal(signal: NodeJS.Signals): void {
   if (!Object.prototype.hasOwnProperty.call(osConstants.signals, signal)) {
-    throw new RangeError(`Invalid signal: ${signal}`);
+    throw new RangeError(`Invalid signal: ${String(signal)}`);
   }
 }
 

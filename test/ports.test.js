@@ -164,6 +164,13 @@ test("kill rejects invalid signals before scanning", () => {
   );
 });
 
+test("kill rejects symbol signals with a validation error", () => {
+  assert.throws(
+    () => killPorts({ ports: [], signal: Symbol("NOT_A_SIGNAL") }),
+    { name: "RangeError", message: "Invalid signal: Symbol(NOT_A_SIGNAL)" }
+  );
+});
+
 test("scan rejects invalid explicit port numbers", () => {
   for (const port of [0, 65536, 3000.5, NaN]) {
     assert.throws(
