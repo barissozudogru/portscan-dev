@@ -123,7 +123,7 @@ function scanWithLsof(): string | null {
     // ENOENT means it never ran at all. The empty stdout that comes with them
     // is not an empty result set, so the error must surface instead of being
     // read as zero ports.
-    if (error.status === 127 || error.code === "ENOENT") throw err;
+    if ((error.status !== undefined && error.status !== 1) || error.code === "ENOENT") throw err;
     // lsof exits non-zero when no results on some systems; check if we got output
     if (typeof error.stdout === 'string') return error.stdout;
     return null;
@@ -337,7 +337,7 @@ function probeLsofPort(port: number): PortProcess[] | null {
     // ENOENT means it never ran at all. The empty stdout that comes with them
     // is not an empty result set, so the error must surface instead of being
     // read as zero processes.
-    if (error.status === 127 || error.code === "ENOENT") throw err;
+    if ((error.status !== undefined && error.status !== 1) || error.code === "ENOENT") throw err;
     if (typeof error.stdout === 'string') return parseLsofOutput(error.stdout, filterFn);
     return null;
   }
