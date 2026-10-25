@@ -1,7 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawn, spawnSync, fork, execSync } from "node:child_process";
+import fs from "node:fs";
 import net from "node:net";
+import os from "node:os";
+import path from "node:path";
 import { killPorts } from "../dist/index.js";
 
 // Every pid currently holding a listening socket on the port, queried the same
@@ -239,5 +242,24 @@ test("a missing scanner binary fails the kill instead of reporting zero processe
 
   assert.notEqual(result.status, 0, `stdout: ${result.stdout}\nstderr: ${result.stderr}`);
   assert.match(result.stderr, /(?:command )?not found/);
+});
+
+test("a scanner command failure is surfaced by the kill path", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "portscan-kill-scanner-error-"));
+  const fakeLsof = path.join(tmpDir, "lsof");
+  fs.writeFileSync(fakeLsof, "#!/bin/sh\nexit 2\n", { mode: 0o755 });
+  const originalPath = process.env.PATH;
+
+  try {
+    process.env.PATH = tmpDir;
+    assert.throws(
+      () => killPorts({ ports: [3000] }),
+      (error) => error && error.status === 2
+    );
+  } finally {
+    if (originalPath === undefined) delete process.env.PATH;
+    else process.env.PATH = originalPath;
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
 });
 

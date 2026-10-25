@@ -74,6 +74,23 @@ test("a missing scanner binary fails the scan instead of reporting zero ports", 
   assert.match(result.stderr, /(?:command )?not found/);
 });
 
+test("a scanner command failure does not report an empty scan", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "portscan-scanner-error-"));
+  const fakeLsof = path.join(tmpDir, "lsof");
+  fs.writeFileSync(fakeLsof, "#!/bin/sh\nexit 2\n", { mode: 0o755 });
+
+  try {
+    const result = spawnSync(process.execPath, ["dist/cli.js"], {
+      encoding: "utf8",
+      env: { PATH: tmpDir },
+    });
+
+    assert.notEqual(result.status, 0, `stdout: ${result.stdout}\nstderr: ${result.stderr}`);
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
 test("port ranges reject every endpoint outside the TCP port range", () => {
   for (const range of ["0-1", "1-0", "65536-65535", "65535-65536", "0-65536"]) {
     const result = spawnSync(process.execPath, ["dist/cli.js", "--port-range", range], {
