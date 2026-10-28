@@ -91,6 +91,31 @@ test("a scanner command failure does not report an empty scan", () => {
   }
 });
 
+test("scan ignores listeners with a non-positive lsof process id", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "portscan-invalid-pid-"));
+  const fakeSs = path.join(tmpDir, "ss");
+  const fakeLsof = path.join(tmpDir, "lsof");
+  fs.writeFileSync(
+    fakeSs,
+    "#!/bin/sh\nexit 1\n",
+    { mode: 0o755 }
+  );
+  fs.writeFileSync(
+    fakeLsof,
+    '#!/bin/sh\nprintf "%s\\n" "COMMAND PID USER FD TYPE DEVICE SIZE/OFF NODE NAME" "node 0 user 7u IPv4 0x 0t0 TCP 127.0.0.1:3000 (LISTEN)"\n',
+    { mode: 0o755 }
+  );
+  const originalPath = process.env.PATH;
+
+  try {
+    process.env.PATH = tmpDir;
+    assert.deepEqual(scanPorts({ ports: [3000] }), []);
+  } finally {
+    process.env.PATH = originalPath;
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
 test("port ranges reject every endpoint outside the TCP port range", () => {
   for (const range of ["0-1", "1-0", "65536-65535", "65535-65536", "0-65536"]) {
     const result = spawnSync(process.execPath, ["dist/cli.js", "--port-range", range], {

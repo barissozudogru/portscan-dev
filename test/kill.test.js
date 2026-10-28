@@ -263,3 +263,44 @@ test("a scanner command failure is surfaced by the kill path", () => {
   }
 });
 
+test("kill ignores a non-positive scanner process id", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "portscan-invalid-pid-kill-"));
+  const fakeSs = path.join(tmpDir, "ss");
+  const fakeLsof = path.join(tmpDir, "lsof");
+  fs.writeFileSync(
+    fakeSs,
+    '#!/bin/sh\nprintf "%s\\n" "State Recv-Q Send-Q Local Address:Port Peer Address:Port Process" "LISTEN 0 128 127.0.0.1:3000 0.0.0.0:* users:((node,pid=0,fd=7))"\n',
+    { mode: 0o755 }
+  );
+  fs.writeFileSync(
+    fakeLsof,
+    '#!/bin/sh\nprintf "%s\\n" "COMMAND PID USER FD TYPE DEVICE SIZE/OFF NODE NAME" "node 0 user 7u IPv4 0x 0t0 TCP 127.0.0.1:3000 (LISTEN)"\n',
+    { mode: 0o755 }
+  );
+  try {
+    const child = spawnSync(
+      process.execPath,
+      [
+        "--input-type=module",
+        "-e",
+        'import { killPorts } from "./dist/index.js"; let signaled = false; process.kill = () => { signaled = true; return true; }; const [result] = killPorts({ ports: [3000] }); console.log(JSON.stringify({ result, signaled }));',
+      ],
+      { encoding: "utf8", env: { ...process.env, PATH: tmpDir } }
+    );
+
+    assert.equal(child.status, 0, `stdout: ${child.stdout}\nstderr: ${child.stderr}`);
+    assert.deepEqual(JSON.parse(child.stdout), {
+      result: {
+        port: 3000,
+        pid: -1,
+        pids: [],
+        success: false,
+        error: "No process found listening on port 3000",
+      },
+      signaled: false,
+    });
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
