@@ -159,6 +159,8 @@ function parseLsofOutput(output: string, filterFn: (port: number) => boolean): P
     const processName = parts[0];
     const pid = parseInt(parts[1], 10);
 
+    if (!Number.isInteger(pid) || pid <= 0) continue;
+
     // NAME column may contain state like "(LISTEN)"
     const nameToken = parts[parts.length - 1].startsWith("(")
       ? parts[parts.length - 2]
@@ -223,6 +225,8 @@ function parseSsOutput(output: string, filterFn: (port: number) => boolean): Por
 
     for (const pidMatch of userCol.matchAll(/pid=(\d+)/g)) {
       const pid = parseInt(pidMatch[1], 10);
+
+      if (!Number.isInteger(pid) || pid <= 0) continue;
 
       const key = `${port}:${pid}`;
       if (seen.has(key)) continue;
