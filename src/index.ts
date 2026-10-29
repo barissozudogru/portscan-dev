@@ -156,15 +156,26 @@ function parseLsofOutput(output: string, filterFn: (port: number) => boolean): P
     const parts = line.split(/\s+/);
     if (parts.length < 9) continue;
 
-    const processName = parts[0];
-    const pid = parseInt(parts[1], 10);
+    // COMMAND is normally one token, but process names may contain spaces.
+    // Anchor the PID to the fixed columns before NAME so numeric command names
+    // cannot be mistaken for the process id.
+    let nameIndex = -1;
+    for (let index = parts.length - 1; index >= 0; index--) {
+      if (/:\d+$/.test(parts[index])) {
+        nameIndex = index;
+        break;
+      }
+    }
+    const pidIndex = nameIndex - 7;
+    if (nameIndex < 0 || pidIndex < 1) continue;
+
+    const processName = parts.slice(0, pidIndex).join(" ");
+    const pid = parseInt(parts[pidIndex], 10);
 
     if (!Number.isInteger(pid) || pid <= 0) continue;
 
-    // NAME column may contain state like "(LISTEN)"
-    const nameToken = parts[parts.length - 1].startsWith("(")
-      ? parts[parts.length - 2]
-      : parts[parts.length - 1];
+    // NAME column may contain state like "(LISTEN)".
+    const nameToken = parts[nameIndex];
 
     if (isNaN(pid) || !nameToken) continue;
 
