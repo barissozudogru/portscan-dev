@@ -170,7 +170,9 @@ function parseLsofOutput(output: string, filterFn: (port: number) => boolean): P
     if (nameIndex < 0 || pidIndex < 1) continue;
 
     const processName = parts.slice(0, pidIndex).join(" ");
-    const pid = parseInt(parts[pidIndex], 10);
+    const pidToken = parts[pidIndex];
+    if (!/^\d+$/.test(pidToken)) continue;
+    const pid = parseInt(pidToken, 10);
 
     if (!Number.isInteger(pid) || pid <= 0) continue;
 
