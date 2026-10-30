@@ -7,6 +7,14 @@ import { spawn, spawnSync } from "node:child_process";
 import net from "node:net";
 import { isDevPortForTest as isDevPort, killPorts, scanPorts } from "../dist/index.js";
 
+async function loadProcessInfoForTest() {
+  const source = fs.readFileSync(new URL("../dist/index.js", import.meta.url), "utf8");
+  const module = await import(`data:text/javascript;charset=utf-8,${encodeURIComponent(
+    `${source}\nexport { getProcessesInfo as getProcessesInfoForTest };`
+  )}`);
+  return module.getProcessesInfoForTest;
+}
+
 function freePort() {
   return new Promise((resolve, reject) => {
     const server = net.createServer();
@@ -160,6 +168,71 @@ test("scan ignores lsof listeners with malformed process ids", () => {
   try {
     process.env.PATH = tmpDir;
     assert.deepEqual(scanPorts({ ports: [3000] }), []);
+  } finally {
+    process.env.PATH = originalPath;
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test("scan ignores lsof listeners with unsafe process ids", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "portscan-unsafe-pid-"));
+  const fakeSs = path.join(tmpDir, "ss");
+  const fakeLsof = path.join(tmpDir, "lsof");
+  fs.writeFileSync(fakeSs, "#!/bin/sh\nexit 1\n", { mode: 0o755 });
+  fs.writeFileSync(
+    fakeLsof,
+    '#!/bin/sh\nprintf "%s\\n" "COMMAND PID USER FD TYPE DEVICE SIZE/OFF NODE NAME" "node 9007199254740992 user 7u IPv4 0x 0t0 TCP 127.0.0.1:3000 (LISTEN)"\n',
+    { mode: 0o755 }
+  );
+  const originalPath = process.env.PATH;
+
+  try {
+    process.env.PATH = tmpDir;
+    assert.deepEqual(scanPorts({ ports: [3000] }), []);
+  } finally {
+    process.env.PATH = originalPath;
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test("scan ignores ss listeners with unsafe process ids", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "portscan-unsafe-ss-pid-"));
+  const fakeSs = path.join(tmpDir, "ss");
+  fs.writeFileSync(
+    fakeSs,
+    '#!/bin/sh\nprintf "%s\\n" "State Recv-Q Send-Q Local Address:Port Peer Address:Port Process" "LISTEN 0 128 0.0.0.0:3000 0.0.0.0:* users:((\\"node\\",pid=9007199254740992,fd=20))"\n',
+    { mode: 0o755 }
+  );
+  const originalPath = process.env.PATH;
+  const originalPlatform = process.platform;
+
+  try {
+    process.env.PATH = tmpDir;
+    Object.defineProperty(process, "platform", { value: "linux", configurable: true });
+    assert.deepEqual(scanPorts({ ports: [3000] }), []);
+  } finally {
+    Object.defineProperty(process, "platform", { value: originalPlatform, configurable: true });
+    process.env.PATH = originalPath;
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test("process info ignores unsafe process ids before invoking ps", async () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "portscan-unsafe-ps-pid-"));
+  const fakePs = path.join(tmpDir, "ps");
+  const logFile = path.join(tmpDir, "ps.log");
+  fs.writeFileSync(
+    fakePs,
+    `#!/bin/sh\necho called >> "${logFile}"\nprintf "%s\\n" "9007199254740992 00:00:01 unsafe"\n`,
+    { mode: 0o755 }
+  );
+  const originalPath = process.env.PATH;
+
+  try {
+    process.env.PATH = tmpDir;
+    const getProcessesInfo = await loadProcessInfoForTest();
+    assert.deepEqual(getProcessesInfo([9007199254740992]), new Map());
+    assert.equal(fs.existsSync(logFile), false);
   } finally {
     process.env.PATH = originalPath;
     fs.rmSync(tmpDir, { recursive: true, force: true });

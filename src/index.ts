@@ -70,7 +70,7 @@ function validateSignal(signal: NodeJS.Signals): void {
 // scanning multiple listening ports does not spawn ps once per port.
 function getProcessesInfo(pids: number[]): Map<number, { uptime: string; command: string }> {
   const results = new Map<number, { uptime: string; command: string }>();
-  const uniquePids = [...new Set(pids.filter((pid) => !isNaN(pid) && pid > 0))];
+  const uniquePids = [...new Set(pids.filter((pid) => Number.isSafeInteger(pid) && pid > 0))];
   if (uniquePids.length === 0) return results;
 
   let raw = "";
@@ -174,7 +174,7 @@ function parseLsofOutput(output: string, filterFn: (port: number) => boolean): P
     if (!/^\d+$/.test(pidToken)) continue;
     const pid = parseInt(pidToken, 10);
 
-    if (!Number.isInteger(pid) || pid <= 0) continue;
+    if (!Number.isSafeInteger(pid) || pid <= 0) continue;
 
     // NAME column may contain state like "(LISTEN)".
     const nameToken = parts[nameIndex];
@@ -239,7 +239,7 @@ function parseSsOutput(output: string, filterFn: (port: number) => boolean): Por
     for (const pidMatch of userCol.matchAll(/pid=(\d+)/g)) {
       const pid = parseInt(pidMatch[1], 10);
 
-      if (!Number.isInteger(pid) || pid <= 0) continue;
+      if (!Number.isSafeInteger(pid) || pid <= 0) continue;
 
       const key = `${port}:${pid}`;
       if (seen.has(key)) continue;
