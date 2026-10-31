@@ -146,6 +146,36 @@ test("scan ignores ss rows that are not listening", () => {
   }
 });
 
+test("scan accepts ss listener rows with leading whitespace", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "portscan-indented-ss-"));
+  const fakeSs = path.join(tmpDir, "ss");
+  fs.writeFileSync(
+    fakeSs,
+    '#!/bin/sh\nprintf "%s\\n" "State Recv-Q Send-Q Local Address:Port Peer Address:Port Process" "  LISTEN 0 128 127.0.0.1:3000 0.0.0.0:* users:((\\"node\\",pid=456,fd=20))"\n',
+    { mode: 0o755 }
+  );
+  const originalPath = process.env.PATH;
+  const originalPlatform = process.platform;
+
+  try {
+    process.env.PATH = tmpDir;
+    Object.defineProperty(process, "platform", { value: "linux", configurable: true });
+    assert.deepEqual(scanPorts({ ports: [3000] }), [
+      {
+        port: 3000,
+        pid: 456,
+        process: "node",
+        command: "unknown",
+        uptime: "unknown",
+      },
+    ]);
+  } finally {
+    Object.defineProperty(process, "platform", { value: originalPlatform, configurable: true });
+    process.env.PATH = originalPath;
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
 test("scan preserves lsof listeners whose spaced command name contains a number", () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "portscan-spaced-command-"));
   const fakeSs = path.join(tmpDir, "ss");

@@ -222,7 +222,7 @@ function parseSsOutput(output: string, filterFn: (port: number) => boolean): Por
   for (const line of lines) {
     if (!line.trim()) continue;
 
-    const parts = line.split(/\s+/);
+    const parts = line.trim().split(/\s+/);
     if (parts.length < 5) continue;
     if (parts[0] !== "LISTEN") continue;
 
