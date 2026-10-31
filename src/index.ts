@@ -224,6 +224,7 @@ function parseSsOutput(output: string, filterFn: (port: number) => boolean): Por
 
     const parts = line.split(/\s+/);
     if (parts.length < 5) continue;
+    if (parts[0] !== "LISTEN") continue;
 
     const localAddr = parts[3];
     const portMatch = localAddr.match(/:(\d+)$/);
