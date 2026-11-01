@@ -269,6 +269,28 @@ test("scan ignores ss listeners with unsafe process ids", () => {
   }
 });
 
+test("scan ignores ss listeners with malformed process ids", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "portscan-malformed-ss-pid-"));
+  const fakeSs = path.join(tmpDir, "ss");
+  fs.writeFileSync(
+    fakeSs,
+    '#!/bin/sh\nprintf "%s\\n" "State Recv-Q Send-Q Local Address:Port Peer Address:Port Process" "LISTEN 0 128 0.0.0.0:3000 0.0.0.0:* users:((\\"node\\",pid=456oops,fd=20))"\n',
+    { mode: 0o755 }
+  );
+  const originalPath = process.env.PATH;
+  const originalPlatform = process.platform;
+
+  try {
+    process.env.PATH = tmpDir;
+    Object.defineProperty(process, "platform", { value: "linux", configurable: true });
+    assert.deepEqual(scanPorts({ ports: [3000] }), []);
+  } finally {
+    Object.defineProperty(process, "platform", { value: originalPlatform, configurable: true });
+    process.env.PATH = originalPath;
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
 test("process info ignores unsafe process ids before invoking ps", async () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "portscan-unsafe-ps-pid-"));
   const fakePs = path.join(tmpDir, "ps");

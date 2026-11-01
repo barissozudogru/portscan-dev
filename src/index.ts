@@ -237,7 +237,7 @@ function parseSsOutput(output: string, filterFn: (port: number) => boolean): Por
     const nameMatch = userCol.match(/\("([^"]+)"/);
     const processName = nameMatch ? nameMatch[1] : "unknown";
 
-    for (const pidMatch of userCol.matchAll(/pid=(\d+)/g)) {
+    for (const pidMatch of userCol.matchAll(/pid=(\d+)(?=[,\s)])/g)) {
       const pid = parseInt(pidMatch[1], 10);
 
       if (!Number.isSafeInteger(pid) || pid <= 0) continue;
