@@ -141,7 +141,13 @@ function scanWithSs(): string | null {
     const error = err as { stdout?: string; status?: number; code?: string };
     // Keep usable output when ss exits 1 after writing results, matching the
     // lsof path. Other failures must continue to the fallback scanner.
-    if (error.status === 1 && typeof error.stdout === "string" && error.stdout.trim()) return error.stdout;
+    if (
+      error.status === 1 &&
+      typeof error.stdout === "string" &&
+      error.stdout.split("\n").some((line) => /^\s*LISTEN\s/.test(line))
+    ) {
+      return error.stdout;
+    }
     return null;
   }
 }
