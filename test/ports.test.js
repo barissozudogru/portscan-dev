@@ -146,6 +146,38 @@ test("scan ignores ss rows that are not listening", () => {
   }
 });
 
+test("scan preserves listener rows when ss exits 1 after producing output", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "portscan-ss-output-error-"));
+  const fakeSs = path.join(tmpDir, "ss");
+  const fakeLsof = path.join(tmpDir, "lsof");
+  fs.writeFileSync(
+    fakeSs,
+    '#!/bin/sh\nprintf "%s\\n" "State Recv-Q Send-Q Local Address:Port Peer Address:Port Process" "LISTEN 0 128 127.0.0.1:3000 0.0.0.0:* users:((\\"node\\",pid=456,fd=20))"\nexit 1\n',
+    { mode: 0o755 }
+  );
+  fs.writeFileSync(fakeLsof, "#!/bin/sh\nexit 1\n", { mode: 0o755 });
+  const originalPath = process.env.PATH;
+  const originalPlatform = process.platform;
+
+  try {
+    process.env.PATH = tmpDir;
+    Object.defineProperty(process, "platform", { value: "linux", configurable: true });
+    assert.deepEqual(scanPorts({ ports: [3000] }), [
+      {
+        port: 3000,
+        pid: 456,
+        process: "node",
+        command: "unknown",
+        uptime: "unknown",
+      },
+    ]);
+  } finally {
+    Object.defineProperty(process, "platform", { value: originalPlatform, configurable: true });
+    process.env.PATH = originalPath;
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
 test("scan accepts ss listener rows with leading whitespace", () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "portscan-indented-ss-"));
   const fakeSs = path.join(tmpDir, "ss");

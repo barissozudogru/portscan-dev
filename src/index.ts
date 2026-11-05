@@ -137,7 +137,11 @@ function scanWithSs(): string | null {
       stdio: ["pipe", "pipe", "pipe"],
       timeout: EXEC_TIMEOUT,
     });
-  } catch {
+  } catch (err: unknown) {
+    const error = err as { stdout?: string; status?: number; code?: string };
+    // Keep usable output when ss exits 1 after writing results, matching the
+    // lsof path. Other failures must continue to the fallback scanner.
+    if (error.status === 1 && typeof error.stdout === "string") return error.stdout;
     return null;
   }
 }
