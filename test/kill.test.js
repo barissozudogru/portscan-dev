@@ -263,6 +263,45 @@ test("a scanner command failure is surfaced by the kill path", () => {
   }
 });
 
+test("kill preserves ss listener rows when ss exits 1 after producing output", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "portscan-kill-ss-output-error-"));
+  const fakeSs = path.join(tmpDir, "ss");
+  const fakeLsof = path.join(tmpDir, "lsof");
+  const stateFile = path.join(tmpDir, "ss-state");
+  fs.writeFileSync(
+    fakeSs,
+    `#!/bin/sh
+if [ ! -f "${stateFile}" ]; then
+  : > "${stateFile}"
+  printf "%s\\n" "State Recv-Q Send-Q Local Address:Port Peer Address:Port Process" "LISTEN 0 128 127.0.0.1:3000 0.0.0.0:* users:((\\"node\\",pid=456,fd=20))"
+  exit 1
+fi
+printf "%s\\n" "State Recv-Q Send-Q Local Address:Port Peer Address:Port Process"
+`,
+    { mode: 0o755 }
+  );
+  fs.writeFileSync(fakeLsof, "#!/bin/sh\nexit 1\n", { mode: 0o755 });
+
+  try {
+    const child = spawnSync(
+      process.execPath,
+      [
+        "--input-type=module",
+        "-e",
+        'import { killPorts } from "./dist/index.js"; Object.defineProperty(process, "platform", { value: "linux" }); process.kill = () => true; console.log(JSON.stringify(killPorts({ ports: [3000] })));',
+      ],
+      { encoding: "utf8", env: { ...process.env, PATH: tmpDir } }
+    );
+
+    assert.equal(child.status, 0, `stdout: ${child.stdout}\nstderr: ${child.stderr}`);
+    assert.deepEqual(JSON.parse(child.stdout), [
+      { port: 3000, pid: 456, pids: [456], success: true },
+    ]);
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
 test("kill ignores a non-positive scanner process id", () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "portscan-invalid-pid-kill-"));
   const fakeSs = path.join(tmpDir, "ss");
