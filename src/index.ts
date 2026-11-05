@@ -391,8 +391,15 @@ function findProcessesOnPort(port: number): PortProcess[] {
         timeout: EXEC_TIMEOUT,
       });
       results = parseSsOutput(output, filterFn);
-    } catch {
-      // ignore
+    } catch (err: unknown) {
+      const error = err as { stdout?: string; status?: number };
+      if (
+        error.status === 1 &&
+        typeof error.stdout === "string" &&
+        error.stdout.split("\n").some((line) => /^\s*LISTEN\s/.test(line))
+      ) {
+        results = parseSsOutput(error.stdout, filterFn);
+      }
     }
   }
 
