@@ -163,7 +163,7 @@ function parseLsofOutput(output: string, filterFn: (port: number) => boolean): P
     if (!line.trim()) continue;
 
     // COMMAND PID USER FD TYPE DEVICE SIZE/OFF NODE NAME
-    const parts = line.split(/\s+/);
+    const parts = line.trim().split(/\s+/);
     if (parts.length < 9) continue;
 
     // COMMAND is normally one token, but process names may contain spaces.
