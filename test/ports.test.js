@@ -445,6 +445,29 @@ test("process info ignores unsafe process ids before invoking ps", async () => {
   }
 });
 
+test("process info ignores unsafe process ids emitted by ps", async () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "portscan-unsafe-ps-output-"));
+  const fakePs = path.join(tmpDir, "ps");
+  fs.writeFileSync(
+    fakePs,
+    '#!/bin/sh\nprintf "%s\\n" "9007199254740993 00:00:01 unsafe"\n',
+    { mode: 0o755 }
+  );
+  const originalPath = process.env.PATH;
+
+  try {
+    process.env.PATH = tmpDir;
+    const getProcessesInfo = await loadProcessInfoForTest();
+    assert.deepEqual(
+      getProcessesInfo([123]),
+      new Map([[123, { uptime: "unknown", command: "unknown" }]])
+    );
+  } finally {
+    process.env.PATH = originalPath;
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
 test("port ranges reject every endpoint outside the TCP port range", () => {
   for (const range of ["0-1", "1-0", "65536-65535", "65535-65536", "0-65536"]) {
     const result = spawnSync(process.execPath, ["dist/cli.js", "--port-range", range], {

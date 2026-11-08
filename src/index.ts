@@ -96,6 +96,7 @@ function getProcessesInfo(pids: number[]): Map<number, { uptime: string; command
     if (!match) continue;
 
     const pid = parseInt(match[1], 10);
+    if (!Number.isSafeInteger(pid) || pid <= 0) continue;
     const uptime = match[2] || "unknown";
     const command = (match[3] && match[3].trim()) || "unknown";
     results.set(pid, { uptime, command });
