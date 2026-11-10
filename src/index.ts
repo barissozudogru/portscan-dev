@@ -1,4 +1,4 @@
-import { execSync } from "child_process";
+import { execFileSync, execSync } from "child_process";
 import { constants as osConstants } from "os";
 import { PortProcess, ScanOptions, KillOptions, KillResult } from "./types.js";
 
@@ -133,13 +133,19 @@ function scanWithLsof(): string | null {
 
 function scanWithSs(): string | null {
   try {
-    return execSync("ss -tlnp", {
+    return execFileSync("ss", ["-tlnp"], {
       encoding: "utf8",
       stdio: ["pipe", "pipe", "pipe"],
       timeout: EXEC_TIMEOUT,
     });
   } catch (err: unknown) {
     const error = err as { stdout?: string; status?: number; code?: string };
+    // A missing ss binary is an expected fallback case, but an operational
+    // failure must not be hidden by a later empty lsof result.
+    if (error.code === "ENOENT") return null;
+    if (error.status !== 1) {
+      throw err;
+    }
     // Keep usable output when ss exits 1 after writing results, matching the
     // lsof path. Other failures must continue to the fallback scanner.
     if (
@@ -386,14 +392,14 @@ function findProcessesOnPort(port: number): PortProcess[] {
 
   if (results === null) {
     try {
-      const output = execSync(`ss -tlnp sport = :${port}`, {
+      const output = execFileSync("ss", ["-tlnp", "sport", "=", `:${port}`], {
         encoding: "utf8",
         stdio: ["pipe", "pipe", "pipe"],
         timeout: EXEC_TIMEOUT,
       });
       results = parseSsOutput(output, filterFn);
     } catch (err: unknown) {
-      const error = err as { stdout?: string; status?: number };
+      const error = err as { stdout?: string; status?: number; code?: string };
       if (
         error.status === 1 &&
         typeof error.stdout === "string" &&
@@ -401,6 +407,7 @@ function findProcessesOnPort(port: number): PortProcess[] {
       ) {
         results = parseSsOutput(error.stdout, filterFn);
       }
+      if (error.code !== "ENOENT" && error.status !== 1) throw err;
     }
   }
 

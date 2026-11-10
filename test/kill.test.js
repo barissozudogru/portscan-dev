@@ -100,6 +100,32 @@ test("a process that ignores SIGTERM is reported as a failed kill", async () => 
   }
 });
 
+test("scanner failures are not reported as an empty kill", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "portscan-kill-scanner-error-"));
+  const fakeSs = path.join(tmpDir, "ss");
+  const fakeLsof = path.join(tmpDir, "lsof");
+  fs.writeFileSync(fakeLsof, "#!/bin/sh\nexit 1\n", { mode: 0o755 });
+  const originalPath = process.env.PATH;
+  const originalPlatform = process.platform;
+
+  try {
+    process.env.PATH = tmpDir;
+    Object.defineProperty(process, "platform", { value: "linux", configurable: true });
+
+    for (const status of [2, 127]) {
+      fs.writeFileSync(fakeSs, `#!/bin/sh\nexit ${status}\n`, { mode: 0o755 });
+      assert.throws(
+        () => killPorts({ ports: [3000] }),
+        (error) => error && error.status === status
+      );
+    }
+  } finally {
+    Object.defineProperty(process, "platform", { value: originalPlatform, configurable: true });
+    process.env.PATH = originalPath;
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
 test("the CLI exits 1 when the process survives the signal", async () => {
   const port = await freePort();
   const child = spawn(process.execPath, ["test/fixtures/sigterm-trapper.mjs", String(port)], {

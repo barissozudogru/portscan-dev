@@ -99,6 +99,32 @@ test("a scanner command failure does not report an empty scan", () => {
   }
 });
 
+test("an ss command failure is not hidden by an empty lsof fallback", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "portscan-ss-command-error-"));
+  const fakeSs = path.join(tmpDir, "ss");
+  const fakeLsof = path.join(tmpDir, "lsof");
+  fs.writeFileSync(fakeLsof, "#!/bin/sh\nexit 1\n", { mode: 0o755 });
+
+  const originalPath = process.env.PATH;
+  const originalPlatform = process.platform;
+
+  try {
+    process.env.PATH = tmpDir;
+    Object.defineProperty(process, "platform", { value: "linux", configurable: true });
+    for (const status of [2, 127]) {
+      fs.writeFileSync(fakeSs, `#!/bin/sh\nexit ${status}\n`, { mode: 0o755 });
+      assert.throws(
+        () => scanPorts({ ports: [3000] }),
+        (error) => error && error.status === status
+      );
+    }
+  } finally {
+    Object.defineProperty(process, "platform", { value: originalPlatform, configurable: true });
+    process.env.PATH = originalPath;
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
 test("scan ignores listeners with a non-positive lsof process id", () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "portscan-invalid-pid-"));
   const fakeSs = path.join(tmpDir, "ss");
