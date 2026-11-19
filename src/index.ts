@@ -195,6 +195,7 @@ function parseLsofOutput(output: string, filterFn: (port: number) => boolean): P
 
     // NAME column may contain state like "(LISTEN)".
     const nameToken = parts[nameIndex];
+    if (!parts.slice(nameIndex + 1).includes("(LISTEN)")) continue;
 
     if (isNaN(pid) || !nameToken) continue;
 
