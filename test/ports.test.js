@@ -150,6 +150,30 @@ test("scan ignores listeners with a non-positive lsof process id", () => {
   }
 });
 
+test("scan ignores lsof rows that are not listening", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "portscan-non-listening-lsof-"));
+  const fakeSs = path.join(tmpDir, "ss");
+  const fakeLsof = path.join(tmpDir, "lsof");
+  fs.writeFileSync(fakeSs, "#!/bin/sh\nexit 1\n", { mode: 0o755 });
+  fs.writeFileSync(
+    fakeLsof,
+    '#!/bin/sh\nprintf "%s\\n" "COMMAND PID USER FD TYPE DEVICE SIZE/OFF NODE NAME" "node 456 user 7u IPv4 0x 0t0 TCP 127.0.0.1:3000 (ESTABLISHED)"\n',
+    { mode: 0o755 }
+  );
+  const originalPath = process.env.PATH;
+  const originalPlatform = process.platform;
+
+  try {
+    process.env.PATH = tmpDir;
+    Object.defineProperty(process, "platform", { value: "linux", configurable: true });
+    assert.deepEqual(scanPorts({ ports: [3000] }), []);
+  } finally {
+    Object.defineProperty(process, "platform", { value: originalPlatform, configurable: true });
+    process.env.PATH = originalPath;
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
 test("scan ignores ss rows that are not listening", () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "portscan-non-listening-"));
   const fakeSs = path.join(tmpDir, "ss");
